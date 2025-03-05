@@ -1,0 +1,266 @@
+<!-- raskladka/templates/index.html -->
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Раскладка продуктов</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="sidebar">
+        <h3>Ваши раскладки</h3>
+        <ul class="plan-list">
+            {% for plan in meal_plans %}
+            <li class="{% if plan.id == selected_plan.id %}selected-plan{% endif %}"
+                onclick="selectPlan({{ plan.id }})">
+                {{ plan.name }} ({{ plan.created_at.strftime('%Y-%m-%d') }})
+            </li>
+            {% endfor %}
+        </ul>
+        <input type="text" id="new-plan-name" placeholder="Название новой раскладки">
+        <button onclick="createPlan()">Создать раскладку</button>
+    </div>
+    <div class="main-content">
+        <div class="auth-links">
+            <a href="{{ url_for('views.logout') }}">Выйти</a>
+        </div>
+        <h1>
+            <span class="editable" id="plan-name" onclick="editPlanName()">
+                {{ selected_plan.name }}
+            </span>
+            <input type="text" class="edit-input" id="plan-name-input" value="{{ selected_plan.name }}">
+            <button class="delete-plan-btn" onclick="deletePlan({{ selected_plan.id }})">
+                Удалить раскладку
+            </button>
+        </h1>
+
+        {% for day in selected_plan.days %}
+        <div class="day-container" data-day="{{ day.day_number }}">
+            <h2>День {{ day.day_number }}
+                <button class="delete-day-btn" onclick="deleteDay({{ day.id }})">
+                    Удалить день
+                </button>
+            </h2>
+            {% for meal in day.meals %}
+            <div class="meal" data-meal-id="{{ meal.id }}">
+                <strong>{{ meal.meal_type }}</strong>
+                <button class="remove-btn" onclick=" Sunglasses ({{ meal.id }})">Удалить</button>
+                <div class="product-list">
+                    {% for product in meal.products %}
+                    <div class="product-item" data-product-id="{{ product.id }}">
+                        <span class="editable" onclick="editProduct(this, {{ product.id }})">
+                            {{ product.name }} - {{ product.weight }}г
+                        </span>
+                        <input type="text" class="edit-input" data-type="name" value="{{ product.name }}">
+                        <input type="number" class="edit-input" data-type="weight" value="{{ product.weight }}">
+                        <button onclick="deleteProduct({{ product.id }})">x</button>
+                    </div>
+                    {% endfor %}
+                    <div>
+                        <input type="text" class="product-name" placeholder="Продукт">
+                        <input type="number" class="product-weight" placeholder="Вес (г)" min="1">
+                        <button onclick="addProduct({{ day.day_number }}, {{ meal.id }})">Добавить</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <button onclick="addMeal({{ day.day_number }})">+ Добавить прием пищи</button>
+        </div>
+        {% endfor %}
+        <button onclick="addDay()">+ Добавить день</button>
+    </div>
+
+    <script>
+        function selectPlan(planId) {
+            window.location.href = `/?plan_id=${planId}`;
+        }
+
+        function editPlanName() {
+            const span = document.getElementById('plan-name');
+            const input = document.getElementById('plan-name-input');
+            span.style.display = 'none';
+            input.classList.add('showing');
+            input.focus();
+            input.onblur = async () => {
+                const newName = input.value;
+                await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'update_plan_name',
+                        plan_id: {{ selected_plan.id }},
+                    new_name: newName
+                    })
+        });
+        span.textContent = newName;
+        span.style.display = 'inline';
+        input.classList.remove('showing');
+            };
+        }
+
+        async function deletePlan(planId) {
+            if (confirm('Вы уверены, что хотите удалить раскладку?')) {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_plan', plan_id: planId })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    window.location.href = data.redirect;
+                }
+            }
+        }
+
+        async function deleteDay(dayId) {
+            if (confirm('Вы уверены, что хотите удалить день?')) {
+                try {
+                    const response = await fetch('/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'delete_day', day_id: dayId })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        console.error('Ошибка удаления дня:', data);
+                        alert('Не удалось удалить день');
+                    }
+                } catch (error) {
+                    console.error('Ошибка при запросе:', error);
+                    alert('Произошла ошибка при удалении дня');
+                }
+            }
+        }
+
+        function editProduct(element, productId) {
+            const productDiv = element.parentElement;
+            const span = element;
+            const nameInput = productDiv.querySelector('input[data-type="name"]');
+            const weightInput = productDiv.querySelector('input[data-type="weight"]');
+
+            span.style.display = 'none';
+            nameInput.classList.add('showing');
+            weightInput.classList.add('showing');
+            nameInput.focus();
+
+            const saveChanges = async () => {
+                await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'update_product',
+                        product_id: productId,
+                        name: nameInput.value,
+                        weight: weightInput.value
+                    })
+                });
+                span.textContent = `${nameInput.value} - ${weightInput.value}г`;
+                span.style.display = 'inline';
+                nameInput.classList.remove('showing');
+                weightInput.classList.remove('showing');
+            };
+
+            nameInput.onblur = saveChanges;
+            weightInput.onblur = saveChanges;
+        }
+
+        async function deleteProduct(productId) {
+            if (confirm('Удалить продукт?')) {
+                await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_product', product_id: productId })
+                });
+                location.reload();
+            }
+        }
+
+        async function addDay() {
+            const days = document.querySelectorAll('.day-container');
+            const newDayNumber = days.length + 1;
+            await fetch('/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'add_day',
+                    plan_id: {{ selected_plan.id }},
+                day_number: newDayNumber
+                })
+            });
+        location.reload();
+        }
+
+        async function addMeal(dayNumber) {
+            const mealType = prompt('Введите тип приема пищи (например, Завтрак):');
+            if (mealType) {
+                await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_meal',
+                        plan_id: {{ selected_plan.id }},
+                    day_number: dayNumber,
+                    meal_type: mealType
+                    })
+        });
+        location.reload();
+            }
+        }
+
+        async function addProduct(dayNumber, mealId) {
+            const productNameInput = document.querySelector(`.meal[data-meal-id="${mealId}"] .product-name`);
+            const productWeightInput = document.querySelector(`.meal[data-meal-id="${mealId}"] .product-weight`);
+            const name = productNameInput.value;
+            const weight = productWeightInput.value;
+
+            if (name && weight) {
+                await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_product',
+                        meal_id: mealId,
+                        name: name,
+                        weight: weight
+                    })
+                });
+                location.reload();
+            }
+        }
+
+        async function removeMeal(dayNumber, mealId) {
+            if (confirm('Удалить прием пищи?')) {
+                await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'remove_meal',
+                        meal_id: mealId
+                    })
+                });
+                location.reload();
+            }
+        }
+
+        async function createPlan() {
+            const newPlanName = document.getElementById('new-plan-name').value;
+            if (newPlanName) {
+                await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create_plan',
+                        name: newPlanName
+                    })
+                });
+                location.reload();
+            }
+        }
+    </script>
+</body>
+
+</html>
