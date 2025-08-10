@@ -54,19 +54,30 @@ def index():
         selected_plan_id = data.get("plan_id")
 
         if action == "delete_plan":
-            meal_plan = db.session.get(MealPlan, selected_plan_id)
-            if meal_plan and meal_plan.user_id == current_user.id:
-                db.session.delete(meal_plan)
-                db.session.commit()
+            try:
+                meal_plan = db.session.get(MealPlan, selected_plan_id)
+                if meal_plan and meal_plan.user_id == current_user.id:
+                    db.session.delete(meal_plan)
+                    db.session.commit()
+                    return jsonify(
+                        {"status": "success", "redirect": url_for("views.index")}
+                    )
+                else:
+                    return jsonify(
+                        {
+                            "status": "error",
+                            "message": "Раскладка не найдена или доступ запрещён",
+                        }
+                    )
+            except Exception as e:
+                db.session.rollback()
+                print(f"Ошибка при удалении раскладки: {e}")
                 return jsonify(
-                    {"status": "success", "redirect": url_for("views.index")}
+                    {
+                        "status": "error",
+                        "message": f"Ошибка при удалении раскладки: {str(e)}",
+                    }
                 )
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "Раскладка не найдена или доступ запрещён",
-                }
-            )
 
         elif action == "update_plan_name":
             meal_plan = db.session.get(MealPlan, selected_plan_id)

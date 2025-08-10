@@ -46,7 +46,7 @@
             {% for meal in day.meals %}
             <div class="meal" data-meal-id="{{ meal.id }}">
                 <strong>{{ meal.meal_type }}</strong>
-                <button class="remove-btn" onclick=" Sunglasses ({{ meal.id }})">Удалить</button>
+                <button class="remove-btn" onclick="removeMeal({{ day.day_number }}, {{ meal.id }})">Удалить</button>
                 <div class="product-list">
                     {% for product in meal.products %}
                     <div class="product-item" data-product-id="{{ product.id }}">
@@ -102,14 +102,22 @@
 
         async function deletePlan(planId) {
             if (confirm('Вы уверены, что хотите удалить раскладку?')) {
-                const response = await fetch('/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'delete_plan', plan_id: planId })
-                });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    window.location.href = data.redirect;
+                try {
+                    const response = await fetch('/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'delete_plan', plan_id: planId })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        window.location.href = data.redirect;
+                    } else {
+                        console.error('Ошибка удаления раскладки:', data);
+                        alert('Не удалось удалить раскладку: ' + (data.message || 'Неизвестная ошибка'));
+                    }
+                } catch (error) {
+                    console.error('Ошибка при запросе удаления раскладки:', error);
+                    alert('Произошла ошибка при удалении раскладки');
                 }
             }
         }
