@@ -181,6 +181,19 @@ def index():
                 }
             )
 
+        elif action == "update_meal_name":
+            meal = db.session.get(Meal, data["meal_id"])
+            if meal and meal.day.meal_plan.user_id == current_user.id:
+                meal.meal_type = data["meal_name"]
+                db.session.commit()
+                return jsonify({"status": "success"})
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "Прием пищи не найден или доступ запрещён",
+                }
+            )
+
         elif action == "create_plan":
             new_plan = MealPlan(user_id=current_user.id, name=data["name"])
             db.session.add(new_plan)
@@ -209,6 +222,17 @@ def index():
     return render_template(
         "index.html", meal_plans=meal_plans, selected_plan=selected_plan
     )
+
+
+@views.route("/day/<int:day_id>/edit")
+@login_required
+def edit_day(day_id):
+    day = db.session.get(Day, day_id)
+    if not day or day.meal_plan.user_id != current_user.id:
+        flash("День не найден или доступ запрещён")
+        return redirect(url_for("views.index"))
+
+    return render_template("edit_day.html", day=day, meal_plan=day.meal_plan)
 
 
 @views.route("/logout")

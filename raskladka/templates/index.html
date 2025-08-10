@@ -1,105 +1,854 @@
 <!-- raskladka/templates/index.html -->
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
-    <title>Раскладка продуктов</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Раскладка продуктов - {{ selected_plan.name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: #f8f9fa;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 25px;
+            height: calc(100vh - 30px);
+        }
+
+        /* Боковая панель */
+        .sidebar {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 15px;
+        }
+
+        .sidebar h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #495057;
+            text-align: center;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .plan-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+
+        .plan-list li {
+            padding: 10px 14px;
+            margin: 6px 0;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .plan-list li:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+            transform: translateX(5px);
+        }
+
+        .plan-list li.selected-plan {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .create-plan-section {
+            padding: 15px 0;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .new-plan-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 0.95em;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .new-plan-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .create-plan-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+
+        .create-plan-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        /* Основной контент */
+        .main-content {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .plan-title-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .plan-title {
+            font-size: 2.2em;
+            font-weight: 300;
+            color: #495057;
+            margin: 0;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .plan-title:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+
+        .plan-title.editing {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+
+        .plan-title-input {
+            font-size: 2.2em;
+            font-weight: 300;
+            color: #856404;
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 8px 12px;
+            width: 400px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .plan-title-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .delete-plan-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .delete-plan-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
+        }
+
+        .auth-links a {
+            color: #6c757d;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-links a:hover {
+            background: #f8f9fa;
+            color: #495057;
+        }
+
+        /* Дни */
+        .day-container {
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fafbfc;
+        }
+
+        .day-header {
+            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .day-header h2 {
+            margin: 0;
+            font-size: 1.4em;
+            font-weight: 400;
+        }
+
+        .edit-day-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .edit-day-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+
+        .day-content {
+            padding: 12px;
+        }
+
+        /* Приемы пищи */
+        .meal {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .meal:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .meal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .meal-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .meal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .delete-meal-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .delete-meal-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        /* Продукты */
+        .product-list {
+            margin-top: 15px;
+        }
+
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            margin: 4px 0;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .product-item:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .product-item.editing {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+
+        .product-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .product-display {
+            font-size: 1.05em;
+            color: #495057;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .product-display:hover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .product-display.editing {
+            display: none;
+        }
+
+        .product-edit-form {
+            display: none;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+        }
+
+        .product-edit-form.showing {
+            display: flex;
+        }
+
+        .edit-input {
+            padding: 8px 12px;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .edit-input:focus {
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .edit-input[data-type="name"] {
+            width: 200px;
+        }
+
+        .edit-input[data-type="weight"] {
+            width: 120px;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .edit-product-btn, .delete-product-btn, .save-product-btn, .cancel-edit-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.85em;
+        }
+
+        .edit-product-btn {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .edit-product-btn:hover {
+            background: #138496;
+            transform: translateY(-1px);
+        }
+
+        .save-product-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .save-product-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .cancel-edit-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .cancel-edit-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .delete-product-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .delete-product-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        /* Формы добавления */
+        .add-product-form {
+            margin-top: 8px;
+            padding: 8px;
+            background: white;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .product-name, .product-weight {
+            padding: 10px 14px;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .product-name:focus, .product-weight:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .product-name {
+            width: 250px;
+        }
+
+        .product-weight {
+            width: 150px;
+        }
+
+        .add-product-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .add-product-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .add-meal-btn {
+            background: #6f42c1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1.05em;
+            margin: 12px 0;
+            transition: all 0.3s ease;
+            display: block;
+            width: 100%;
+        }
+
+        .add-meal-btn:hover {
+            background: #5a32a3;
+            transform: translateY(-2px);
+        }
+
+        .add-day-btn {
+            background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1em;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            display: block;
+            width: 100%;
+        }
+
+        .add-day-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(253, 126, 20, 0.3);
+        }
+
+        /* Сообщения */
+        .success-message {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .error-message {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: #dc3545;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Адаптивность */
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .sidebar {
+                position: static;
+                order: 2;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .main-content {
+                padding: 15px;
+            }
+
+            .content-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .plan-title {
+                font-size: 1.8em;
+            }
+
+            .plan-title-input {
+                width: 100%;
+                font-size: 1.8em;
+            }
+
+            .day-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .meal-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .product-item {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .product-info {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .product-edit-form {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .form-row {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .edit-input, .product-name, .product-weight {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
 </head>
-
 <body>
-    <div class="sidebar">
-        <h3>Ваши раскладки</h3>
-        <ul class="plan-list">
-            {% for plan in meal_plans %}
-            <li class="{% if plan.id == selected_plan.id %}selected-plan{% endif %}"
-                onclick="selectPlan({{ plan.id }})">
-                {{ plan.name }} ({{ plan.created_at.strftime('%Y-%m-%d') }})
-            </li>
-            {% endfor %}
-        </ul>
-        <input type="text" id="new-plan-name" placeholder="Название новой раскладки">
-        <button onclick="createPlan()">Создать раскладку</button>
-    </div>
-    <div class="main-content">
-        <div class="auth-links">
-            <a href="{{ url_for('views.logout') }}">Выйти</a>
-        </div>
-        <h1>
-            <span class="editable" id="plan-name" onclick="editPlanName()">
-                {{ selected_plan.name }}
-            </span>
-            <input type="text" class="edit-input" id="plan-name-input" value="{{ selected_plan.name }}">
-            <button class="delete-plan-btn" onclick="deletePlan({{ selected_plan.id }})">
-                Удалить раскладку
-            </button>
-        </h1>
-
-        {% for day in selected_plan.days %}
-        <div class="day-container" data-day="{{ day.day_number }}">
-            <h2>День {{ day.day_number }}
-                <button class="delete-day-btn" onclick="deleteDay({{ day.id }})">
-                    Удалить день
-                </button>
-            </h2>
-            {% for meal in day.meals %}
-            <div class="meal" data-meal-id="{{ meal.id }}">
-                <strong>{{ meal.meal_type }}</strong>
-                <button class="remove-btn" onclick="removeMeal({{ day.day_number }}, {{ meal.id }})">Удалить</button>
-                <div class="product-list">
-                    {% for product in meal.products %}
-                    <div class="product-item" data-product-id="{{ product.id }}">
-                        <span class="editable" onclick="editProduct(this, {{ product.id }})">
-                            {{ product.name }} - {{ product.weight }}г
-                        </span>
-                        <input type="text" class="edit-input" data-type="name" value="{{ product.name }}">
-                        <input type="number" class="edit-input" data-type="weight" value="{{ product.weight }}">
-                        <button onclick="deleteProduct({{ product.id }})">x</button>
+    <div class="main-container">
+        <!-- Боковая панель -->
+        <div class="sidebar">
+            <h3>Ваши раскладки</h3>
+            <ul class="plan-list">
+                {% for plan in meal_plans %}
+                <li class="{% if plan.id == selected_plan.id %}selected-plan{% endif %}"
+                    onclick="selectPlan({{ plan.id }})">
+                    {{ plan.name }}
+                    <div style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">
+                        {{ plan.created_at.strftime('%Y-%m-%d') }}
                     </div>
-                    {% endfor %}
-                    <div>
-                        <input type="text" class="product-name" placeholder="Продукт">
-                        <input type="number" class="product-weight" placeholder="Вес (г)" min="1">
-                        <button onclick="addProduct({{ day.day_number }}, {{ meal.id }})">Добавить</button>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <div class="create-plan-section">
+                <input type="text" id="new-plan-name" class="new-plan-input" placeholder="Название новой раскладки">
+                <button class="create-plan-btn" onclick="createPlan()">+ Создать раскладку</button>
+            </div>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="main-content">
+            <div class="content-header">
+                <div class="plan-title-section">
+                    <h1 class="plan-title" onclick="editPlanName()" data-original-name="{{ selected_plan.name }}">
+                        {{ selected_plan.name }}
+                    </h1>
+                    <input type="text" class="plan-title-input" id="plan-name-input" value="{{ selected_plan.name }}" style="display: none;">
+                </div>
+
+                <div class="header-actions">
+                    <button class="delete-plan-btn" onclick="deletePlan({{ selected_plan.id }})">
+                        Удалить раскладку
+                    </button>
+                    <div class="auth-links">
+                        <a href="{{ url_for('views.logout') }}">Выйти</a>
                     </div>
                 </div>
             </div>
+
+            <!-- Дни -->
+            {% for day in selected_plan.days %}
+            <div class="day-container" data-day="{{ day.day_number }}">
+                <div class="day-header">
+                    <h2>День {{ day.day_number }}</h2>
+                    <a href="{{ url_for('views.edit_day', day_id=day.id) }}" class="edit-day-btn">
+                        Редактировать день
+                    </a>
+                </div>
+
+                <div class="day-content">
+                    {% for meal in day.meals %}
+                    <div class="meal" data-meal-id="{{ meal.id }}">
+                        <div class="meal-header">
+                            <div class="meal-title">{{ meal.meal_type }}</div>
+                            <div class="meal-actions">
+                                <button class="delete-meal-btn" onclick="deleteMeal({{ meal.id }})">
+                                    Удалить
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="product-list">
+                            {% for product in meal.products %}
+                            <div class="product-item" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" data-product-weight="{{ product.weight }}">
+                                <div class="product-info">
+                                    <div class="product-display" onclick="startEditProduct({{ product.id }})">
+                                        {{ product.name }} - {{ product.weight }}г
+                                    </div>
+                                    <div class="product-edit-form">
+                                        <input type="text" class="edit-input" data-type="name" value="{{ product.name }}" placeholder="Название продукта">
+                                        <input type="number" class="edit-input" data-type="weight" value="{{ product.weight }}" placeholder="Вес (г)" min="1">
+                                        <button class="save-product-btn" onclick="saveProductEdit({{ product.id }})">✓</button>
+                                        <button class="cancel-edit-btn" onclick="cancelProductEdit({{ product.id }})">✗</button>
+                                    </div>
+                                </div>
+                                <div class="product-actions">
+                                    <button class="delete-product-btn" onclick="deleteProduct({{ product.id }})">Удалить</button>
+                                </div>
+                            </div>
+                            {% endfor %}
+
+                            <div class="add-product-form">
+                                <div class="form-row">
+                                    <input type="text" class="product-name" placeholder="Название продукта">
+                                    <input type="number" class="product-weight" placeholder="Вес (г)" min="1">
+                                    <button class="add-product-btn" onclick="addProduct({{ day.day_number }}, {{ meal.id }})">
+                                        Добавить продукт
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <button class="add-meal-btn" onclick="addMeal({{ day.day_number }})">
+                        + Добавить прием пищи
+                    </button>
+                </div>
+            </div>
             {% endfor %}
-            <button onclick="addMeal({{ day.day_number }})">+ Добавить прием пищи</button>
+
+            <button class="add-day-btn" onclick="addDay()">
+                + Добавить новый день
+            </button>
         </div>
-        {% endfor %}
-        <button onclick="addDay()">+ Добавить день</button>
     </div>
 
     <script>
+        // Утилиты для показа сообщений
+        function showMessage(message, type = 'success') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // Выбор плана
         function selectPlan(planId) {
             window.location.href = `/?plan_id=${planId}`;
         }
 
+        // Редактирование названия плана
         function editPlanName() {
-            const span = document.getElementById('plan-name');
+            const title = document.querySelector('.plan-title');
             const input = document.getElementById('plan-name-input');
-            span.style.display = 'none';
-            input.classList.add('showing');
+            const originalName = title.dataset.originalName;
+
+            title.style.display = 'none';
+            input.style.display = 'inline-block';
             input.focus();
-            input.onblur = async () => {
-                const newName = input.value;
-                await fetch('/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'update_plan_name',
-                        plan_id: {{ selected_plan.id }},
-                    new_name: newName
-                    })
-        });
-        span.textContent = newName;
-        span.style.display = 'inline';
-        input.classList.remove('showing');
+            input.select();
+
+            const saveChanges = async () => {
+                const newName = input.value.trim();
+                if (newName && newName !== originalName) {
+                    try {
+                        const response = await fetch('/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'update_plan_name',
+                                plan_id: {{ selected_plan.id }}, // eslint-disable-line
+                                new_name: newName
+                            })
+                        });
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            title.textContent = newName;
+                            title.dataset.originalName = newName;
+                            showMessage('Название раскладки обновлено');
+                        } else {
+                            showMessage('Не удалось обновить название раскладки', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка при обновлении названия:', error);
+                        showMessage('Произошла ошибка при обновлении названия', 'error');
+                    }
+                }
+
+                title.style.display = 'inline';
+                input.style.display = 'none';
             };
+
+            input.addEventListener('blur', saveChanges);
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveChanges();
+                }
+            });
         }
 
+        // Удаление плана
         async function deletePlan(planId) {
             if (confirm('Вы уверены, что хотите удалить раскладку?')) {
                 try {
@@ -112,163 +861,298 @@
                     if (data.status === 'success') {
                         window.location.href = data.redirect;
                     } else {
-                        console.error('Ошибка удаления раскладки:', data);
-                        alert('Не удалось удалить раскладку: ' + (data.message || 'Неизвестная ошибка'));
+                        showMessage('Не удалось удалить раскладку', 'error');
                     }
                 } catch (error) {
-                    console.error('Ошибка при запросе удаления раскладки:', error);
-                    alert('Произошла ошибка при удалении раскладки');
+                    console.error('Ошибка при удалении раскладки:', error);
+                    showMessage('Произошла ошибка при удалении раскладки', 'error');
                 }
             }
         }
 
-        async function deleteDay(dayId) {
-            if (confirm('Вы уверены, что хотите удалить день?')) {
+        // Создание плана
+        async function createPlan() {
+            const newPlanName = document.getElementById('new-plan-name').value.trim();
+            if (newPlanName) {
                 try {
                     const response = await fetch('/', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'delete_day', day_id: dayId })
+                        body: JSON.stringify({
+                            action: 'create_plan',
+                            name: newPlanName
+                        })
                     });
                     const data = await response.json();
                     if (data.status === 'success') {
+                        showMessage('Раскладка создана');
                         location.reload();
                     } else {
-                        console.error('Ошибка удаления дня:', data);
-                        alert('Не удалось удалить день');
+                        showMessage('Не удалось создать раскладку', 'error');
                     }
                 } catch (error) {
-                    console.error('Ошибка при запросе:', error);
-                    alert('Произошла ошибка при удалении дня');
+                    console.error('Ошибка при создании раскладки:', error);
+                    showMessage('Произошла ошибка при создании раскладки', 'error');
                 }
+            } else {
+                showMessage('Введите название раскладки', 'error');
             }
         }
 
-        function editProduct(element, productId) {
-            const productDiv = element.parentElement;
-            const span = element;
-            const nameInput = productDiv.querySelector('input[data-type="name"]');
-            const weightInput = productDiv.querySelector('input[data-type="weight"]');
+        // Начало редактирования продукта
+        function startEditProduct(productId) {
+            const productItem = document.querySelector(`[data-product-id="${productId}"]`);
+            if (!productItem) return;
 
-            span.style.display = 'none';
-            nameInput.classList.add('showing');
-            weightInput.classList.add('showing');
-            nameInput.focus();
+            const productDisplay = productItem.querySelector('.product-display');
+            const productEditForm = productItem.querySelector('.product-edit-form');
 
-            const saveChanges = async () => {
-                await fetch('/', {
+            productDisplay.style.display = 'none';
+            productEditForm.style.display = 'flex';
+            productItem.classList.add('editing');
+
+            const nameInput = productEditForm.querySelector('input[data-type="name"]');
+            if (nameInput) {
+                nameInput.focus();
+                nameInput.select();
+            }
+        }
+
+        // Сохранение изменений продукта
+        async function saveProductEdit(productId) {
+            const productItem = document.querySelector(`[data-product-id="${productId}"]`);
+            if (!productItem) return;
+
+            const productDisplay = productItem.querySelector('.product-display');
+            const productEditForm = productItem.querySelector('.product-edit-form');
+            const nameInput = productEditForm.querySelector('input[data-type="name"]');
+            const weightInput = productEditForm.querySelector('input[data-type="weight"]');
+
+            const name = nameInput.value.trim();
+            const weight = weightInput.value.trim();
+
+            if (!name || !weight) {
+                showMessage('Пожалуйста, заполните все поля', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'update_product',
                         product_id: productId,
-                        name: nameInput.value,
-                        weight: weightInput.value
-                    })
-                });
-                span.textContent = `${nameInput.value} - ${weightInput.value}г`;
-                span.style.display = 'inline';
-                nameInput.classList.remove('showing');
-                weightInput.classList.remove('showing');
-            };
-
-            nameInput.onblur = saveChanges;
-            weightInput.onblur = saveChanges;
-        }
-
-        async function deleteProduct(productId) {
-            if (confirm('Удалить продукт?')) {
-                await fetch('/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'delete_product', product_id: productId })
-                });
-                location.reload();
-            }
-        }
-
-        async function addDay() {
-            const days = document.querySelectorAll('.day-container');
-            const newDayNumber = days.length + 1;
-            await fetch('/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'add_day',
-                    plan_id: {{ selected_plan.id }},
-                day_number: newDayNumber
-                })
-            });
-        location.reload();
-        }
-
-        async function addMeal(dayNumber) {
-            const mealType = prompt('Введите тип приема пищи (например, Завтрак):');
-            if (mealType) {
-                await fetch('/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'add_meal',
-                        plan_id: {{ selected_plan.id }},
-                    day_number: dayNumber,
-                    meal_type: mealType
-                    })
-        });
-        location.reload();
-            }
-        }
-
-        async function addProduct(dayNumber, mealId) {
-            const productNameInput = document.querySelector(`.meal[data-meal-id="${mealId}"] .product-name`);
-            const productWeightInput = document.querySelector(`.meal[data-meal-id="${mealId}"] .product-weight`);
-            const name = productNameInput.value;
-            const weight = productWeightInput.value;
-
-            if (name && weight) {
-                await fetch('/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'add_product',
-                        meal_id: mealId,
                         name: name,
                         weight: weight
                     })
                 });
-                location.reload();
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    productDisplay.textContent = `${name} - ${weight}г`;
+                    productItem.dataset.productName = name;
+                    productItem.dataset.productWeight = weight;
+
+                    productDisplay.style.display = 'inline';
+                    productEditForm.style.display = 'none';
+                    productItem.classList.remove('editing');
+
+                    showMessage('Продукт обновлен');
+                } else {
+                    showMessage('Не удалось обновить продукт', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка при обновлении продукта:', error);
+                showMessage('Произошла ошибка при обновлении продукта', 'error');
             }
         }
 
-        async function removeMeal(dayNumber, mealId) {
+        // Отмена редактирования продукта
+        function cancelProductEdit(productId) {
+            const productItem = document.querySelector(`[data-product-id="${productId}"]`);
+            if (!productItem) return;
+
+            const productDisplay = productItem.querySelector('.product-display');
+            const productEditForm = productItem.querySelector('.product-edit-form');
+            const nameInput = productEditForm.querySelector('input[data-type="name"]');
+            const weightInput = productEditForm.querySelector('input[data-type="weight"]');
+
+            const originalName = productItem.dataset.productName;
+            const originalWeight = productItem.dataset.productWeight;
+
+            nameInput.value = originalName;
+            weightInput.value = originalWeight;
+
+            productDisplay.style.display = 'inline';
+            productEditForm.style.display = 'none';
+            productItem.classList.remove('editing');
+        }
+
+        // Удаление приема пищи
+        async function deleteMeal(mealId) {
             if (confirm('Удалить прием пищи?')) {
-                await fetch('/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'remove_meal',
-                        meal_id: mealId
-                    })
-                });
-                location.reload();
+                try {
+                    const response = await fetch('/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'remove_meal', meal_id: mealId })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        showMessage('Прием пищи удален');
+                        location.reload();
+                    } else {
+                        showMessage('Не удалось удалить прием пищи', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка при удалении приема пищи:', error);
+                    showMessage('Произошла ошибка при удалении приема пищи', 'error');
+                }
             }
         }
 
-        async function createPlan() {
-            const newPlanName = document.getElementById('new-plan-name').value;
-            if (newPlanName) {
-                await fetch('/', {
+        // Удаление продукта
+        async function deleteProduct(productId) {
+            if (confirm('Удалить продукт?')) {
+                try {
+                    const response = await fetch('/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'delete_product', product_id: productId })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        showMessage('Продукт удален');
+                        location.reload();
+                    } else {
+                        showMessage('Не удалось удалить продукт', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка при удалении продукта:', error);
+                    showMessage('Произошла ошибка при удалении продукта', 'error');
+                }
+            }
+        }
+
+        // Добавление дня
+        async function addDay() {
+            const days = document.querySelectorAll('.day-container');
+            const newDayNumber = days.length + 1;
+
+            try {
+                const response = await fetch('/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        action: 'create_plan',
-                        name: newPlanName
+                        action: 'add_day',
+                        plan_id: {{ selected_plan.id }},
+                        day_number: newDayNumber
                     })
                 });
-                location.reload();
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showMessage('День добавлен');
+                    location.reload();
+                } else {
+                    showMessage('Не удалось добавить день', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка при добавлении дня:', error);
+                showMessage('Произошла ошибка при добавлении дня', 'error');
             }
         }
+
+        // Добавление приема пищи
+        async function addMeal(dayNumber) {
+            const mealType = prompt('Введите тип приема пищи (например, Завтрак):');
+            if (mealType) {
+                try {
+                    const response = await fetch('/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'add_meal',
+                            plan_id: {{ selected_plan.id }},
+                            day_number: dayNumber,
+                            meal_type: mealType
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        showMessage('Прием пищи добавлен');
+                        location.reload();
+                    } else {
+                        showMessage('Не удалось добавить прием пищи', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка при добавлении приема пищи:', error);
+                    showMessage('Произошла ошибка при добавлении приема пищи', 'error');
+                }
+            }
+        }
+
+        // Добавление продукта
+        async function addProduct(dayNumber, mealId) {
+            const mealSection = document.querySelector(`[data-meal-id="${mealId}"]`);
+            const productNameInput = mealSection.querySelector('.product-name');
+            const productWeightInput = mealSection.querySelector('.product-weight');
+            const name = productNameInput.value.trim();
+            const weight = productWeightInput.value.trim();
+
+            if (name && weight) {
+                try {
+                    const response = await fetch('/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'add_product',
+                            meal_id: mealId,
+                            name: name,
+                            weight: weight
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        showMessage('Продукт добавлен');
+                        location.reload();
+                    } else {
+                        showMessage('Не удалось добавить продукт', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка при добавлении продукта:', error);
+                    showMessage('Произошла ошибка при добавлении продукта', 'error');
+                }
+            } else {
+                showMessage('Пожалуйста, заполните все поля', 'error');
+            }
+        }
+
+        // Обработка Enter в полях добавления продукта
+        document.addEventListener('DOMContentLoaded', function() {
+            const productNameInputs = document.querySelectorAll('.product-name');
+            const productWeightInputs = document.querySelectorAll('.product-weight');
+
+            productNameInputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const mealSection = input.closest('.meal');
+                        const weightInput = mealSection.querySelector('.product-weight');
+                        weightInput.focus();
+                    }
+                });
+            });
+
+            productWeightInputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const mealSection = input.closest('.meal');
+                        const addButton = mealSection.querySelector('.add-product-btn');
+                        addButton.click();
+                    }
+                });
+            });
+        });
     </script>
 </body>
-
 </html>
