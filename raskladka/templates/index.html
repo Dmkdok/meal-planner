@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Раскладка продуктов - {{ selected_plan.name }}</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23e3f2fd' stroke='%23667eea' stroke-width='1'/><circle cx='12' cy='14' r='3' fill='%23ff6b6b'/><path d='M16 8c-2 0-4 1-5 3-1 2-1 4 0 6 1 2 3 3 5 3s4-1 5-3c1-2 1-4 0-6-1-2-3-3-5-3z' fill='%23ff6b6b'/><text x='16' y='22' text-anchor='middle' fill='%23667eea' font-family='Arial' font-size='8' font-weight='bold'>РП</text></svg>">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         * {
@@ -14,19 +15,610 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 15px;
+            padding: 0;
             background: #f8f9fa;
             color: #333;
             min-height: 100vh;
         }
 
-        .main-container {
+        /* Header стили */
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+        }
+
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .app-title {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 600;
+            color: white;
+        }
+
+        .app-subtitle {
+            margin: 0;
+            font-size: 0.9em;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .main-nav {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tab {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-1px);
+        }
+
+        .nav-tab.active {
+            background: rgba(255,255,255,0.25);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab-icon {
+            font-size: 1.1em;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-icon {
+            font-size: 1.1em;
+        }
+
+        /* Основной контейнер приложения */
+        .app-container {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Контейнер для всего приложения включая header */
+        .app-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Стили для вкладок */
+        .tab-content {
+            flex: 1;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Стили для калькулятора */
+        .calculator-content {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 25px;
+            height: 100%;
+        }
+
+        .calculator-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .calculator-header h2 {
+            margin: 0 0 10px 0;
+            font-size: 2em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .calculator-header p {
+            margin: 0;
+            font-size: 1.1em;
+            color: #6c757d;
+        }
+
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            height: calc(100% - 120px);
+        }
+
+        .calculator-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .calculator-panel h3 {
+            margin: 0 0 20px 0;
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #495057;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .product-categories {
+            height: calc(100% - 60px);
+            overflow-y: auto;
+        }
+
+        .category-section {
+            margin-bottom: 25px;
+        }
+
+        .category-section h4 {
+            margin: 0 0 15px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #495057;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .product-list-calc {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .product-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .product-checkbox:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateX(5px);
+        }
+
+        .product-checkbox input[type="checkbox"] {
+            display: none;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            margin-right: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .product-checkbox input[type="checkbox"]:checked + .checkmark {
+            background: #667eea;
+            border-color: #667eea;
+        }
+
+        .product-checkbox input[type="checkbox"]:checked + .checkmark::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* Стили для информации о раскладке */
+        .layout-info {
+            height: calc(100% - 60px);
+            overflow-y: auto;
+        }
+
+        .layout-summary {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .layout-summary h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 1.2em;
+            text-align: center;
+        }
+
+        .layout-summary p {
+            margin: 8px 0;
+            color: #6c757d;
+            font-size: 0.95em;
+        }
+
+        .layout-details h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 1.1em;
+        }
+
+        .day-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 2px solid #e9ecef;
+        }
+
+        .day-summary h5 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .meals-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .meal-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .meal-type {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .products-count {
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+
+        .calculation-info {
+            margin-bottom: 25px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .info-box h4 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+            font-size: 1em;
+        }
+
+        .info-box ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #1976d2;
+            font-size: 0.9em;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+        }
+
+        .calculation-settings {
+            margin-bottom: 25px;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .setting-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .setting-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .calculate-section {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .calculate-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .results-section h4 {
+            margin: 0 0 15px 0;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #495057;
+            text-align: center;
+        }
+
+        .results-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .result-item .product-name {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .result-item .product-amount {
+            font-weight: 600;
+            color: #28a745;
+        }
+
+        .result-product-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .product-occurrences {
+            font-size: 0.85em;
+            color: #6c757d;
+            font-weight: normal;
+        }
+
+        /* Стили для таблицы результатов */
+        .results-table-container {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .results-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .results-table th {
+            padding: 15px 20px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1em;
+            border: none;
+            vertical-align: top;
+        }
+
+        .results-table th:first-child {
+            text-align: left;
+        }
+
+        .results-table tbody tr {
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .results-table tbody tr:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        .results-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .results-table td {
+            padding: 15px 20px;
+            font-size: 1em;
+            border: none;
+            text-align: center;
+        }
+
+        .results-table td:first-child {
+            text-align: left;
+        }
+
+        .product-name-cell {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .occurrences-cell {
+            text-align: center;
+            font-weight: 600;
+            color: #6f42c1;
+            background: #f8f9ff;
+        }
+
+        .weight-per-person-cell {
+            text-align: center;
+            font-weight: 600;
+            color: #fd7e14;
+            background: #fff8f0;
+        }
+
+        .meal-usage-cell {
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+
+        .meal-usage-empty-cell {
+            text-align: center;
+            color: #adb5bd;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+
+        .weight-cell {
+            text-align: right;
+            font-weight: 600;
+            color: #28a745;
+            background: #f8fff9;
+        }
+
+        /* Стили для основной секции результатов */
+        .main-results-section {
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 25px;
+        }
+
+        .main-results-section h3 {
+            margin: 0 0 20px 0;
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #495057;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .main-results-content {
+            width: 100%;
+        }
+
+        .main-container {
             display: grid;
             grid-template-columns: 300px 1fr;
             gap: 25px;
-            height: calc(100vh - 30px);
+            min-height: calc(100vh - 140px);
         }
 
         /* Боковая панель */
@@ -220,13 +812,41 @@
             color: #495057;
         }
 
-        /* Дни */
+        /* Дни - адаптивная сетка карточек */
+        .days-grid {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 20px !important;
+            margin-bottom: 20px !important;
+            width: 100% !important;
+        }
+
         .day-container {
-            margin-bottom: 20px;
-            border: 2px solid #e9ecef;
-            border-radius: 16px;
-            overflow: hidden;
-            background: #fafbfc;
+            flex: 1 1 400px !important;
+            min-width: 400px !important;
+            max-width: calc(50% - 10px) !important;
+            border: 2px solid #e9ecef !important;
+            border-radius: 16px !important;
+            overflow: hidden !important;
+            background: #fafbfc !important;
+            height: fit-content !important;
+            transition: all 0.3s ease !important;
+            margin-bottom: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* Для очень больших экранов - больше карточек в ряд */
+        @media (min-width: 1600px) {
+            .day-container {
+                flex: 1 1 350px !important;
+                min-width: 350px !important;
+                max-width: calc(33.333% - 14px) !important;
+            }
+        }
+
+        .day-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
 
         .day-header {
@@ -267,11 +887,11 @@
 
         /* Приемы пищи */
         .meal {
-            margin-bottom: 10px;
-            padding: 10px;
+            margin-bottom: 8px;
+            padding: 8px;
             background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
 
@@ -284,13 +904,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e9ecef;
         }
 
         .meal-title {
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: 600;
             color: #495057;
         }
@@ -325,11 +945,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 10px;
-            margin: 4px 0;
+            padding: 4px 8px;
+            margin: 2px 0;
             background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
             transition: all 0.3s ease;
         }
 
@@ -351,18 +971,17 @@
         }
 
         .product-display {
-            font-size: 1.05em;
+            font-size: 0.95em;
             color: #495057;
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
             transition: all 0.3s ease;
-            border: 2px solid transparent;
+            border: 1px solid transparent;
         }
 
         .product-display:hover {
-            background: #e3f2fd;
-            border-color: #2196f3;
+            background: transparent;
+            border-color: transparent;
         }
 
         .product-display.editing {
@@ -460,58 +1079,58 @@
 
         /* Формы добавления */
         .add-product-form {
-            margin-top: 8px;
-            padding: 8px;
-            background: white;
-            border: 2px dashed #dee2e6;
-            border-radius: 10px;
-            text-align: center;
+            margin-top: 5px;
+            padding: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
         }
 
         .form-row {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
         }
 
         .product-name, .product-weight {
-            padding: 10px 14px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 0.95em;
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9em;
             transition: all 0.3s ease;
             outline: none;
         }
 
         .product-name:focus, .product-weight:focus {
             border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
         }
 
         .product-name {
-            width: 250px;
+            width: 200px;
         }
 
         .product-weight {
-            width: 150px;
+            width: 100px;
         }
 
         .add-product-btn {
             background: #28a745;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 4px;
             cursor: pointer;
             font-weight: 500;
+            font-size: 0.9em;
             transition: all 0.3s ease;
         }
 
         .add-product-btn:hover {
             background: #218838;
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
 
         .add-meal-btn {
@@ -603,11 +1222,68 @@
                 position: static;
                 order: 2;
             }
+
+            .day-container {
+                flex: 1 1 350px !important;
+                min-width: 350px !important;
+                max-width: calc(50% - 8px) !important;
+            }
+
+            .days-grid {
+                gap: 15px !important;
+            }
         }
 
         @media (max-width: 768px) {
             body {
-                padding: 10px;
+                padding: 0;
+            }
+
+            .day-container {
+                flex: 1 1 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            .days-grid {
+                gap: 15px !important;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .main-nav {
+                order: 2;
+            }
+
+            .nav-tabs {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .nav-tab {
+                justify-content: center;
+            }
+
+            .app-wrapper {
+                padding: 0 15px;
+            }
+
+            .app-container {
+                padding: 15px;
+            }
+
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .sidebar {
+                position: static;
+                order: 2;
             }
 
             .main-content {
@@ -666,11 +1342,84 @@
                 width: 100%;
                 max-width: 300px;
             }
+
+            /* Адаптивность для калькулятора */
+            .calculator-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .calculator-content {
+                padding: 15px;
+            }
+
+            .calculator-header h2 {
+                font-size: 1.6em;
+            }
+
+            .calculator-panel {
+                padding: 15px;
+            }
+
+            /* Адаптивность для таблицы результатов */
+            .results-table-container {
+                overflow-x: auto;
+            }
+
+            .results-table {
+                min-width: 1200px;
+            }
+
+            .results-table th,
+            .results-table td {
+                padding: 10px 12px;
+                font-size: 0.9em;
+            }
+
+            .main-results-section {
+                padding: 15px;
+            }
+
+            .main-results-section h3 {
+                font-size: 1.5em;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
+    <div class="app-wrapper">
+        <!-- Header с навигацией -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <h1 class="app-title">Раскладка Продуктов</h1>
+                    <p class="app-subtitle">Система планирования питания</p>
+                </div>
+                <nav class="main-nav">
+                    <div class="nav-tabs">
+                        <button class="nav-tab active" data-tab="layout" onclick="switchTab('layout')">
+                            <span class="tab-icon">📋</span>
+                            Раскладка
+                        </button>
+                        <button class="nav-tab" data-tab="calculator" onclick="switchTab('calculator')">
+                            <span class="tab-icon">🧮</span>
+                            Калькулятор
+                        </button>
+                    </div>
+                </nav>
+                <div class="user-section">
+                    <div class="auth-links">
+                        <a href="{{ url_for('views.logout') }}" class="logout-btn">
+                            <span class="btn-icon">🚪</span>
+                            Выйти
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-container">
+        <div class="main-container">
         <!-- Боковая панель -->
         <div class="sidebar">
             <h3>Ваши раскладки</h3>
@@ -692,8 +1441,11 @@
             </div>
         </div>
 
-        <!-- Основной контент -->
-        <div class="main-content">
+        <!-- Контейнеры вкладок -->
+        <div class="tab-content">
+            <!-- Вкладка "Раскладка" -->
+            <div id="layout-tab" class="tab-pane active">
+                <div class="main-content">
             <div class="content-header">
                 <div class="plan-title-section">
                     <h1 class="plan-title" onclick="editPlanName()" data-original-name="{{ selected_plan.name }}">
@@ -706,13 +1458,11 @@
                     <button class="delete-plan-btn" onclick="deletePlan({{ selected_plan.id }})">
                         Удалить раскладку
                     </button>
-                    <div class="auth-links">
-                        <a href="{{ url_for('views.logout') }}">Выйти</a>
-                    </div>
                 </div>
             </div>
 
             <!-- Дни -->
+            <div class="days-grid">
             {% for day in selected_plan.days %}
             <div class="day-container" data-day="{{ day.day_number }}">
                 <div class="day-header">
@@ -727,52 +1477,27 @@
                     <div class="meal" data-meal-id="{{ meal.id }}">
                         <div class="meal-header">
                             <div class="meal-title">{{ meal.meal_type }}</div>
-                            <div class="meal-actions">
-                                <button class="delete-meal-btn" onclick="deleteMeal({{ meal.id }})">
-                                    Удалить
-                                </button>
-                            </div>
                         </div>
 
                         <div class="product-list">
                             {% for product in meal.products %}
                             <div class="product-item" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" data-product-weight="{{ product.weight }}">
                                 <div class="product-info">
-                                    <div class="product-display" onclick="startEditProduct({{ product.id }})">
+                                    <div class="product-display">
                                         {{ product.name }} - {{ product.weight }}г
                                     </div>
-                                    <div class="product-edit-form">
-                                        <input type="text" class="edit-input" data-type="name" value="{{ product.name }}" placeholder="Название продукта">
-                                        <input type="number" class="edit-input" data-type="weight" value="{{ product.weight }}" placeholder="Вес (г)" min="1">
-                                        <button class="save-product-btn" onclick="saveProductEdit({{ product.id }})">✓</button>
-                                        <button class="cancel-edit-btn" onclick="cancelProductEdit({{ product.id }})">✗</button>
-                                    </div>
-                                </div>
-                                <div class="product-actions">
-                                    <button class="delete-product-btn" onclick="deleteProduct({{ product.id }})">Удалить</button>
                                 </div>
                             </div>
                             {% endfor %}
-
-                            <div class="add-product-form">
-                                <div class="form-row">
-                                    <input type="text" class="product-name" placeholder="Название продукта">
-                                    <input type="number" class="product-weight" placeholder="Вес (г)" min="1">
-                                    <button class="add-product-btn" onclick="addProduct({{ day.day_number }}, {{ meal.id }})">
-                                        Добавить продукт
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
                     {% endfor %}
 
-                    <button class="add-meal-btn" onclick="addMeal({{ day.day_number }})">
-                        + Добавить прием пищи
-                    </button>
+
                 </div>
             </div>
             {% endfor %}
+            </div>
 
             <button class="add-day-btn" onclick="addDay()">
                 + Добавить новый день
@@ -780,7 +1505,421 @@
         </div>
     </div>
 
+            <!-- Вкладка "Калькулятор" -->
+            <div id="calculator-tab" class="tab-pane">
+                <div class="calculator-content">
+                    <div class="calculator-header">
+                        <h2>🧮 Калькулятор продуктов</h2>
+                        <p>Рассчитайте необходимое количество продуктов для вашей раскладки</p>
+                    </div>
+
+                    <!-- Основная таблица результатов -->
+                    <div class="main-results-section" id="main-results-section" style="display: none;">
+                        <h3>📋 Список покупок</h3>
+                        <div class="main-results-content" id="main-results-content">
+                            <!-- Основная таблица будет добавлена через JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="calculator-grid">
+                        <!-- Левая панель - Информация о раскладке -->
+                        <div class="calculator-panel">
+                            <h3>📋 Текущая раскладка</h3>
+                            <div class="layout-info">
+                                <div class="layout-summary">
+                                    <h4>📊 {{ selected_plan.name }}</h4>
+                                    <p><strong>Дней в раскладке:</strong> {{ selected_plan.days|length }}</p>
+                                    <p><strong>Всего приемов пищи:</strong>
+                                        {% set total_meals = 0 %}
+                                        {% for day in selected_plan.days %}
+                                            {% for meal in day.meals %}
+                                                {% set total_meals = total_meals + 1 %}
+                                            {% endfor %}
+                                        {% endfor %}
+                                        {{ total_meals }}
+                                    </p>
+                                    <p><strong>Всего продуктов:</strong>
+                                        {% set total_products = 0 %}
+                                        {% for day in selected_plan.days %}
+                                            {% for meal in day.meals %}
+                                                {% set total_products = total_products + meal.products|length %}
+                                            {% endfor %}
+                                        {% endfor %}
+                                        {{ total_products }}
+                                    </p>
+                                </div>
+
+                                <div class="layout-details">
+                                    <h4>📅 Детали по дням:</h4>
+                                    {% for day in selected_plan.days %}
+                                    <div class="day-summary">
+                                        <h5>День {{ day.day_number }}</h5>
+                                        <div class="meals-summary">
+                                            {% for meal in day.meals %}
+                                            <div class="meal-summary">
+                                                <span class="meal-type">{{ meal.meal_type }}</span>
+                                                <span class="products-count">
+                                                    {{ meal.products|length }} продуктов
+                                                </span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Правая панель - Расчеты -->
+                        <div class="calculator-panel">
+                            <h3>📊 Параметры расчета</h3>
+                            <div class="calculation-settings">
+                                <div class="setting-group">
+                                    <label for="trip-days">Длительность похода (дней):</label>
+                                    <input type="number" id="trip-days" value="{{ selected_plan.days|length }}" min="1" max="30">
+                                </div>
+                                <div class="setting-group">
+                                    <label for="people-count">Количество человек:</label>
+                                    <input type="number" id="people-count" value="1" min="1" max="10">
+                                </div>
+                            </div>
+
+                            <div class="calculation-info">
+                                <div class="info-box">
+                                    <h4>ℹ️ Как работает расчет:</h4>
+                                    <ul>
+                                        <li>Система берет продукты из вашей раскладки</li>
+                                        <li>Умножает количество на число повторений дней</li>
+                                        <li>Учитывает количество человек</li>
+                                        <li>Показывает общий вес для покупки</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="calculate-section">
+                                <button class="calculate-btn" onclick="calculateFromLayout()">
+                                    🧮 Рассчитать на основе раскладки
+                                </button>
+                            </div>
+
+                            <div class="results-section" id="results-section" style="display: none;">
+                                <h4>📊 Детали расчета</h4>
+                                <div class="results-content" id="results-content">
+                                    <!-- Детали расчета будут добавлены через JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+
     <script>
+        // Сохранение параметров расчета для раскладки
+        function saveCalculationParams() {
+            const tripDays = document.getElementById('trip-days').value;
+            const peopleCount = document.getElementById('people-count').value;
+            const planId = {{ selected_plan.id }};
+
+            localStorage.setItem(`calc_params_${planId}`, JSON.stringify({
+                tripDays: tripDays,
+                peopleCount: peopleCount
+            }));
+        }
+
+        // Восстановление параметров расчета для раскладки
+        function loadCalculationParams() {
+            const planId = {{ selected_plan.id }};
+            const savedParams = localStorage.getItem(`calc_params_${planId}`);
+
+            if (savedParams) {
+                const params = JSON.parse(savedParams);
+                document.getElementById('trip-days').value = params.tripDays;
+                document.getElementById('people-count').value = params.peopleCount;
+            } else {
+                // Устанавливаем значения по умолчанию
+                document.getElementById('trip-days').value = {{ selected_plan.days|length }};
+                document.getElementById('people-count').value = 1;
+            }
+        }
+
+        // Переключение вкладок
+        function switchTab(tabName) {
+            // Скрываем все вкладки
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+
+            // Убираем активный класс со всех кнопок
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(tab => tab.classList.remove('active'));
+
+            // Показываем нужную вкладку
+            const targetPane = document.getElementById(tabName + '-tab');
+            if (targetPane) {
+                targetPane.classList.add('active');
+            }
+
+            // Активируем нужную кнопку
+            const targetTab = document.querySelector(`[data-tab="${tabName}"]`);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+        }
+
+        // Расчет продуктов на основе раскладки
+        function calculateFromLayout() {
+            const tripDays = parseInt(document.getElementById('trip-days').value);
+            const peopleCount = parseInt(document.getElementById('people-count').value);
+
+
+
+            if (!tripDays || !peopleCount) {
+                showMessage('Пожалуйста, заполните все поля', 'error');
+                return;
+            }
+
+            // Получаем данные о раскладке из DOM (только на вкладке раскладки)
+            const layoutTab = document.getElementById('layout-tab');
+            if (!layoutTab) {
+                console.error('Вкладка раскладки не найдена');
+                showMessage('Ошибка: вкладка раскладки не найдена', 'error');
+                return;
+            }
+            const layoutDays = layoutTab.querySelectorAll('.day-container');
+            const layoutDaysCount = layoutDays.length;
+
+            if (layoutDaysCount === 0) {
+                showMessage('В раскладке нет дней. Сначала создайте раскладку на первой вкладке.', 'error');
+                return;
+            }
+
+            // Собираем все продукты из раскладки
+            const productsMap = new Map(); // productName -> {weight, occurrences}
+
+            layoutDays.forEach((dayElement, dayIndex) => {
+                const dayNumber = dayIndex + 1;
+                const meals = dayElement.querySelectorAll('.meal');
+
+                meals.forEach(mealElement => {
+                    const products = mealElement.querySelectorAll('.product-item');
+
+                    products.forEach(productElement => {
+                        const productName = productElement.dataset.productName;
+                        const productWeight = parseInt(productElement.dataset.productWeight);
+
+                        if (productName && productWeight) {
+                            if (productsMap.has(productName)) {
+                                const existing = productsMap.get(productName);
+                                existing.weight += productWeight;
+                                existing.occurrences += 1;
+                            } else {
+                                productsMap.set(productName, {
+                                    weight: productWeight,
+                                    occurrences: 1
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            if (productsMap.size === 0) {
+                showMessage('В раскладке нет продуктов. Сначала добавьте продукты на первой вкладке.', 'error');
+                return;
+            }
+
+            // Рассчитываем количество повторений раскладки
+            const layoutRepetitions = Math.ceil(tripDays / layoutDaysCount);
+            const actualDaysUsed = layoutRepetitions * layoutDaysCount;
+
+            // Генерируем результаты
+            const results = [];
+            productsMap.forEach((productData, productName) => {
+                const totalWeight = productData.weight * layoutRepetitions * peopleCount;
+                const totalOccurrences = productData.occurrences * layoutRepetitions;
+                // Вес за один прием пищи (без учета повторений и количества человек)
+                const weightPerMeal = productData.weight / productData.occurrences;
+
+                console.log(`Расчет для ${productName}: общий вес=${productData.weight}г, количество=${productData.occurrences}, вес за прием=${weightPerMeal}г`);
+
+                results.push({
+                    name: productName,
+                    weight: totalWeight,
+                    occurrences: totalOccurrences,
+                    weightPerMeal: weightPerMeal,
+                    unit: 'г'
+                });
+            });
+
+            // Сортируем результаты по весу (по убыванию)
+            results.sort((a, b) => b.weight - a.weight);
+
+            console.log('=== ИТОГОВЫЕ РЕЗУЛЬТАТЫ ===');
+            results.forEach(result => {
+                console.log(`${result.name}: weightPerMeal=${result.weightPerMeal}г, totalWeight=${result.weight}г`);
+            });
+
+            // Показываем результаты
+            displayLayoutResults(results, tripDays, peopleCount, layoutDaysCount, layoutRepetitions, actualDaysUsed);
+
+            // Сохраняем параметры после успешного расчета
+            saveCalculationParams();
+        }
+
+        // Отображение результатов расчета на основе раскладки
+        function displayLayoutResults(results, tripDays, peopleCount, layoutDaysCount, layoutRepetitions, actualDaysUsed) {
+            const mainResultsSection = document.getElementById('main-results-section');
+            const mainResultsContent = document.getElementById('main-results-content');
+            const resultsSection = document.getElementById('results-section');
+            const resultsContent = document.getElementById('results-content');
+
+            // Получаем данные о раскладке из DOM (только на вкладке раскладки)
+            const layoutTab = document.getElementById('layout-tab');
+            if (!layoutTab) {
+                console.error('Вкладка раскладки не найдена в displayLayoutResults');
+                return;
+            }
+            const layoutDays = layoutTab.querySelectorAll('.day-container');
+
+                        // Собираем информацию о рационах (приемах пищи) из раскладки
+            const mealTypesByDay = []; // Типы приемов пищи по дням
+            const productMealUsage = new Map(); // productName -> {dayIndex: count}
+
+            layoutDays.forEach((dayElement, dayIndex) => {
+                const meals = dayElement.querySelectorAll('.meal');
+                let dayMealTypes = [];
+
+                meals.forEach(mealElement => {
+                    const mealType = mealElement.querySelector('.meal-title').textContent.trim();
+                    const products = mealElement.querySelectorAll('.product-item');
+
+                    if (products.length > 0) {
+                        dayMealTypes.push(mealType);
+                    }
+
+                    products.forEach(productElement => {
+                        const productName = productElement.dataset.productName;
+                        if (productName) {
+                            if (!productMealUsage.has(productName)) {
+                                productMealUsage.set(productName, {});
+                            }
+                            const usage = productMealUsage.get(productName);
+                            usage[dayIndex] = (usage[dayIndex] || 0) + 1;
+                        }
+                    });
+                });
+
+                mealTypesByDay.push(dayMealTypes);
+            });
+
+            console.log('Типы приемов пищи по дням:', mealTypesByDay);
+
+            // Основная таблица результатов
+            let mainHtml = `
+                <div class="results-table-container">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Продукт</th>
+                                <th>1 прием пищи на ${peopleCount} чел.</th>
+            `;
+
+            // Добавляем заголовки для каждого дня похода (рациона)
+            for (let i = 0; i < tripDays; i++) {
+                const dayInLayout = i % layoutDaysCount; // Какой день из раскладки использовать
+                const dayMealTypes = mealTypesByDay[dayInLayout] || [];
+                const mealType = dayMealTypes.length > 0 ? dayMealTypes.join(', ') : `День ${dayInLayout + 1}`;
+                mainHtml += `<th>Рац ${i + 1}<br><small>${mealType}</small></th>`;
+            }
+
+            mainHtml += `
+                                <th>Количество повторений</th>
+                                <th>Общий вес для покупки</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+                        results.forEach(result => {
+                const weightText = result.weight >= 1000 ?
+                    `${(result.weight / 1000).toFixed(1)} кг` :
+                    `${result.weight} г`;
+
+                // Вес за один прием пищи × количество человек
+                const weightPerMealForPeople = result.weightPerMeal * peopleCount;
+                const weightPerMealText = weightPerMealForPeople >= 1000 ?
+                    `${(weightPerMealForPeople / 1000).toFixed(1)} кг` :
+                    `${Math.round(weightPerMealForPeople)} г`;
+
+                // Получаем информацию о использовании в рационах
+                const mealUsage = productMealUsage.get(result.name) || {};
+
+                mainHtml += `
+                    <tr>
+                        <td class="product-name-cell">${result.name}</td>
+                        <td class="weight-per-person-cell">${weightPerMealText}</td>
+                `;
+
+                // Добавляем столбцы для каждого дня похода
+                for (let i = 0; i < tripDays; i++) {
+                    const dayInLayout = i % layoutDaysCount; // Какой день из раскладки использовать
+                    const usageCount = mealUsage[dayInLayout] || 0;
+                    const cellClass = usageCount > 0 ? 'meal-usage-cell' : 'meal-usage-empty-cell';
+                    mainHtml += `<td class="${cellClass}">${usageCount > 0 ? usageCount : ''}</td>`;
+                }
+
+                mainHtml += `
+                        <td class="occurrences-cell">${result.occurrences}</td>
+                        <td class="weight-cell">${weightText}</td>
+                    </tr>
+                `;
+            });
+
+            mainHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Добавляем статистику
+            const totalWeight = results.reduce((sum, result) => sum + result.weight, 0);
+            const totalWeightText = totalWeight >= 1000 ?
+                `${(totalWeight / 1000).toFixed(1)} кг` :
+                `${totalWeight} г`;
+
+            mainHtml += `
+                <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #28a745;">
+                    <h5 style="margin: 0 0 10px 0; color: #1e7e34;">📊 Общая статистика</h5>
+                    <p style="margin: 5px 0; color: #1e7e34;"><strong>Всего продуктов:</strong> ${results.length}</p>
+                    <p style="margin: 5px 0; color: #1e7e34;"><strong>Общий вес для покупки:</strong> ${totalWeightText}</p>
+                </div>
+            `;
+
+            // Детали расчета для боковой панели
+            let detailsHtml = `
+                <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                    <h5 style="margin: 0 0 10px 0; color: #1976d2;">📊 Информация о расчете</h5>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Длительность похода:</strong> ${tripDays} дней</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Количество человек:</strong> ${peopleCount}</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Дней в раскладке:</strong> ${layoutDaysCount}</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Повторений раскладки:</strong> ${layoutRepetitions}</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Используется дней:</strong> ${actualDaysUsed}</p>
+                </div>
+            `;
+
+                        mainResultsContent.innerHTML = mainHtml;
+            resultsContent.innerHTML = detailsHtml;
+
+            mainResultsSection.style.display = 'block';
+            resultsSection.style.display = 'block';
+
+            // Плавная прокрутка к основной таблице
+            mainResultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
         // Утилиты для показа сообщений
         function showMessage(message, type = 'success') {
             const messageDiv = document.createElement('div');
@@ -795,6 +1934,8 @@
 
         // Выбор плана
         function selectPlan(planId) {
+            // Сохраняем текущие параметры перед переключением
+            saveCalculationParams();
             window.location.href = `/?plan_id=${planId}`;
         }
 
@@ -1152,6 +2293,23 @@
                     }
                 });
             });
+
+            // Загружаем сохраненные параметры расчета
+            loadCalculationParams();
+
+            // Добавляем обработчики для сохранения параметров при изменении
+            const tripDaysInput = document.getElementById('trip-days');
+            const peopleCountInput = document.getElementById('people-count');
+
+            if (tripDaysInput) {
+                tripDaysInput.addEventListener('change', saveCalculationParams);
+                tripDaysInput.addEventListener('input', saveCalculationParams);
+            }
+
+            if (peopleCountInput) {
+                peopleCountInput.addEventListener('change', saveCalculationParams);
+                peopleCountInput.addEventListener('input', saveCalculationParams);
+            }
         });
     </script>
 </body>
