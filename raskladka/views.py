@@ -3,6 +3,14 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_login import login_user, login_required, logout_user, current_user
 from raskladka import db, bcrypt
 from raskladka.models import User, MealPlan, Day, Meal, Product
+from raskladka.services import (
+    CalculationService,
+    MealPlanService,
+    DayService,
+    MealService,
+    ProductService,
+)
+from raskladka.utils import validate_positive_integer
 
 views = Blueprint("views", __name__)
 
@@ -55,10 +63,8 @@ def index():
 
         if action == "delete_plan":
             try:
-                meal_plan = db.session.get(MealPlan, selected_plan_id)
-                if meal_plan and meal_plan.user_id == current_user.id:
-                    db.session.delete(meal_plan)
-                    db.session.commit()
+                success = MealPlanService.delete_plan(selected_plan_id, current_user.id)
+                if success:
                     return jsonify(
                         {"status": "success", "redirect": url_for("views.index")}
                     )
@@ -80,10 +86,10 @@ def index():
                 )
 
         elif action == "update_plan_name":
-            meal_plan = db.session.get(MealPlan, selected_plan_id)
-            if meal_plan and meal_plan.user_id == current_user.id:
-                meal_plan.name = data["new_name"]
-                db.session.commit()
+            success = MealPlanService.update_plan_name(
+                selected_plan_id, current_user.id, data["new_name"]
+            )
+            if success:
                 return jsonify({"status": "success"})
             return jsonify(
                 {
@@ -93,42 +99,36 @@ def index():
             )
 
         elif action == "delete_day":
-            day = db.session.get(Day, data["day_id"])
-            if day and day.meal_plan.user_id == current_user.id:
-                db.session.delete(day)
-                db.session.commit()
+            success = DayService.delete_day(data["day_id"], current_user.id)
+            if success:
                 return jsonify({"status": "success"})
             return jsonify(
                 {"status": "error", "message": "День не найден или доступ запрещён"}
             )
 
         elif action == "update_product":
-            product = db.session.get(Product, data["product_id"])
-            if product and product.meal.day.meal_plan.user_id == current_user.id:
-                product.name = data["name"]
-                product.weight = data["weight"]
-                db.session.commit()
+            success = ProductService.update_product(
+                data["product_id"], current_user.id, data["name"], data["weight"]
+            )
+            if success:
                 return jsonify({"status": "success"})
             return jsonify(
                 {"status": "error", "message": "Продукт не найден или доступ запрещён"}
             )
 
         elif action == "delete_product":
-            product = db.session.get(Product, data["product_id"])
-            if product and product.meal.day.meal_plan.user_id == current_user.id:
-                db.session.delete(product)
-                db.session.commit()
+            success = ProductService.delete_product(data["product_id"], current_user.id)
+            if success:
                 return jsonify({"status": "success"})
             return jsonify(
                 {"status": "error", "message": "Продукт не найден или доступ запрещён"}
             )
 
         elif action == "add_day":
-            meal_plan = db.session.get(MealPlan, selected_plan_id)
-            if meal_plan and meal_plan.user_id == current_user.id:
-                new_day = Day(meal_plan=meal_plan, day_number=data["day_number"])
-                db.session.add(new_day)
-                db.session.commit()
+            success = DayService.add_day(
+                selected_plan_id, current_user.id, data["day_number"]
+            )
+            if success:
                 return jsonify({"status": "success"})
             return jsonify(
                 {
@@ -138,28 +138,20 @@ def index():
             )
 
         elif action == "add_meal":
-            meal_plan = db.session.get(MealPlan, selected_plan_id)
-            if meal_plan and meal_plan.user_id == current_user.id:
-                day = Day.query.filter_by(
-                    meal_plan_id=selected_plan_id, day_number=data["day_number"]
-                ).first()
-                if day:
-                    new_meal = Meal(day=day, meal_type=data["meal_type"])
-                    db.session.add(new_meal)
-                    db.session.commit()
-                    return jsonify({"status": "success"})
+            success = MealService.add_meal(
+                selected_plan_id, current_user.id, data["day_number"], data["meal_type"]
+            )
+            if success:
+                return jsonify({"status": "success"})
             return jsonify(
                 {"status": "error", "message": "День или раскладка не найдены"}
             )
 
         elif action == "add_product":
-            meal = db.session.get(Meal, data["meal_id"])
-            if meal and meal.day.meal_plan.user_id == current_user.id:
-                new_product = Product(
-                    meal=meal, name=data["name"], weight=data["weight"]
-                )
-                db.session.add(new_product)
-                db.session.commit()
+            success = ProductService.add_product(
+                data["meal_id"], current_user.id, data["name"], data["weight"]
+            )
+            if success:
                 return jsonify({"status": "success"})
             return jsonify(
                 {
@@ -169,10 +161,8 @@ def index():
             )
 
         elif action == "remove_meal":
-            meal = db.session.get(Meal, data["meal_id"])
-            if meal and meal.day.meal_plan.user_id == current_user.id:
-                db.session.delete(meal)
-                db.session.commit()
+            success = MealService.delete_meal(data["meal_id"], current_user.id)
+            if success:
                 return jsonify({"status": "success"})
             return jsonify(
                 {
@@ -182,10 +172,10 @@ def index():
             )
 
         elif action == "update_meal_name":
-            meal = db.session.get(Meal, data["meal_id"])
-            if meal and meal.day.meal_plan.user_id == current_user.id:
-                meal.meal_type = data["meal_name"]
-                db.session.commit()
+            success = MealService.update_meal_type(
+                data["meal_id"], current_user.id, data["meal_name"]
+            )
+            if success:
                 return jsonify({"status": "success"})
             return jsonify(
                 {
@@ -200,28 +190,81 @@ def index():
             db.session.commit()
             return jsonify({"status": "success"})
 
-    meal_plans = MealPlan.query.filter_by(user_id=current_user.id).all()
+    meal_plans = MealPlanService.get_user_plans(current_user.id)
     selected_plan_id = request.args.get("plan_id")
     selected_plan = (
-        db.session.get(MealPlan, selected_plan_id)
+        MealPlanService.get_plan_by_id(selected_plan_id, current_user.id)
         if selected_plan_id
-        else meal_plans[0] if meal_plans else None
+        else meal_plans[0]
+        if meal_plans
+        else None
     )
 
     if not selected_plan:
-        selected_plan = MealPlan(user_id=current_user.id, name="Current Plan")
-        day = Day(meal_plan=selected_plan, day_number=1)
-        for meal_type in ["Завтрак", "Обед/Перекус", "Ужин"]:
-            meal = Meal(day=day, meal_type=meal_type)
-            db.session.add(meal)
-        db.session.add(day)
-        db.session.add(selected_plan)
-        db.session.commit()
+        selected_plan = MealPlanService.create_default_plan(current_user.id)
         meal_plans = [selected_plan]
 
     return render_template(
         "index.html", meal_plans=meal_plans, selected_plan=selected_plan
     )
+
+
+@views.route("/calculate", methods=["POST"])
+@login_required
+def calculate_products():
+    """API endpoint для расчета продуктов на основе раскладки"""
+    try:
+        data = request.get_json()
+        plan_id = data.get("plan_id")
+        trip_days = data.get("trip_days")
+        people_count = data.get("people_count")
+
+        if not all([plan_id, trip_days, people_count]):
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "Необходимо указать plan_id, trip_days и people_count",
+                }
+            ), 400
+
+        # Валидация входных данных
+        is_valid_trip_days, trip_days_error = validate_positive_integer(
+            trip_days, "Количество дней похода"
+        )
+        if not is_valid_trip_days:
+            return jsonify({"status": "error", "message": trip_days_error}), 400
+
+        is_valid_people_count, people_count_error = validate_positive_integer(
+            people_count, "Количество человек"
+        )
+        if not is_valid_people_count:
+            return jsonify({"status": "error", "message": people_count_error}), 400
+
+        # Получаем план питания
+        meal_plan = MealPlanService.get_plan_by_id(plan_id, current_user.id)
+        if not meal_plan:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "Раскладка не найдена или доступ запрещён",
+                }
+            ), 404
+
+        # Выполняем расчет
+        result = CalculationService.calculate_products_from_layout(
+            meal_plan, trip_days, people_count
+        )
+
+        if not result.get("success"):
+            return jsonify(
+                {"status": "error", "message": result.get("error", "Ошибка расчета")}
+            ), 400
+
+        return jsonify({"status": "success", "data": result})
+
+    except Exception as e:
+        print(f"Ошибка при расчете продуктов: {e}")
+        return jsonify({"status": "error", "message": "Внутренняя ошибка сервера"}), 500
 
 
 @views.route("/day/<int:day_id>/edit")

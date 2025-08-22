@@ -1670,150 +1670,56 @@
         }
 
         // Расчет продуктов на основе раскладки
-        function calculateFromLayout() {
+        async function calculateFromLayout() {
             const tripDays = parseInt(document.getElementById('trip-days').value);
             const peopleCount = parseInt(document.getElementById('people-count').value);
-
-
 
             if (!tripDays || !peopleCount) {
                 showMessage('Пожалуйста, заполните все поля', 'error');
                 return;
             }
 
-            // Получаем данные о раскладке из DOM (только на вкладке раскладки)
-            const layoutTab = document.getElementById('layout-tab');
-            if (!layoutTab) {
-                console.error('Вкладка раскладки не найдена');
-                showMessage('Ошибка: вкладка раскладки не найдена', 'error');
-                return;
-            }
-            const layoutDays = layoutTab.querySelectorAll('.day-container');
-            const layoutDaysCount = layoutDays.length;
-
-            if (layoutDaysCount === 0) {
-                showMessage('В раскладке нет дней. Сначала создайте раскладку на первой вкладке.', 'error');
-                return;
-            }
-
-            // Собираем все продукты из раскладки
-            const productsMap = new Map(); // productName -> {weight, occurrences}
-
-            layoutDays.forEach((dayElement, dayIndex) => {
-                const dayNumber = dayIndex + 1;
-                const meals = dayElement.querySelectorAll('.meal');
-
-                meals.forEach(mealElement => {
-                    const products = mealElement.querySelectorAll('.product-item');
-
-                    products.forEach(productElement => {
-                        const productName = productElement.dataset.productName;
-                        const productWeight = parseInt(productElement.dataset.productWeight);
-
-                        if (productName && productWeight) {
-                            if (productsMap.has(productName)) {
-                                const existing = productsMap.get(productName);
-                                existing.weight += productWeight;
-                                existing.occurrences += 1;
-                            } else {
-                                productsMap.set(productName, {
-                                    weight: productWeight,
-                                    occurrences: 1
-                                });
-                            }
-                        }
-                    });
+            try {
+                const response = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plan_id: {{ selected_plan.id }},
+                        trip_days: tripDays,
+                        people_count: peopleCount
+                    })
                 });
-            });
 
-            if (productsMap.size === 0) {
-                showMessage('В раскладке нет продуктов. Сначала добавьте продукты на первой вкладке.', 'error');
-                return;
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const result = data.data;
+                    displayLayoutResults(
+                        result.results,
+                        result.summary.trip_days,
+                        result.summary.people_count,
+                        result.summary.layout_days_count,
+                        result.summary.layout_repetitions,
+                        result.summary.actual_days_used,
+                        result.meal_types_by_day,
+                        result.product_meal_usage
+                    );
+                    saveCalculationParams();
+                } else {
+                    showMessage(data.message || 'Ошибка при расчете', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка при запросе расчета:', error);
+                showMessage('Произошла ошибка при расчете', 'error');
             }
-
-            // Рассчитываем количество повторений раскладки
-            const layoutRepetitions = Math.ceil(tripDays / layoutDaysCount);
-            const actualDaysUsed = layoutRepetitions * layoutDaysCount;
-
-            // Генерируем результаты
-            const results = [];
-            productsMap.forEach((productData, productName) => {
-                const totalWeight = productData.weight * layoutRepetitions * peopleCount;
-                const totalOccurrences = productData.occurrences * layoutRepetitions;
-                // Вес за один прием пищи (без учета повторений и количества человек)
-                const weightPerMeal = productData.weight / productData.occurrences;
-
-                console.log(`Расчет для ${productName}: общий вес=${productData.weight}г, количество=${productData.occurrences}, вес за прием=${weightPerMeal}г`);
-
-                results.push({
-                    name: productName,
-                    weight: totalWeight,
-                    occurrences: totalOccurrences,
-                    weightPerMeal: weightPerMeal,
-                    unit: 'г'
-                });
-            });
-
-            // Сортируем результаты по весу (по убыванию)
-            results.sort((a, b) => b.weight - a.weight);
-
-            console.log('=== ИТОГОВЫЕ РЕЗУЛЬТАТЫ ===');
-            results.forEach(result => {
-                console.log(`${result.name}: weightPerMeal=${result.weightPerMeal}г, totalWeight=${result.weight}г`);
-            });
-
-            // Показываем результаты
-            displayLayoutResults(results, tripDays, peopleCount, layoutDaysCount, layoutRepetitions, actualDaysUsed);
-
-            // Сохраняем параметры после успешного расчета
-            saveCalculationParams();
         }
 
         // Отображение результатов расчета на основе раскладки
-        function displayLayoutResults(results, tripDays, peopleCount, layoutDaysCount, layoutRepetitions, actualDaysUsed) {
+        function displayLayoutResults(results, tripDays, peopleCount, layoutDaysCount, layoutRepetitions, actualDaysUsed, mealTypesByDay, productMealUsage) {
             const mainResultsSection = document.getElementById('main-results-section');
             const mainResultsContent = document.getElementById('main-results-content');
             const resultsSection = document.getElementById('results-section');
             const resultsContent = document.getElementById('results-content');
-
-            // Получаем данные о раскладке из DOM (только на вкладке раскладки)
-            const layoutTab = document.getElementById('layout-tab');
-            if (!layoutTab) {
-                console.error('Вкладка раскладки не найдена в displayLayoutResults');
-                return;
-            }
-            const layoutDays = layoutTab.querySelectorAll('.day-container');
-
-                        // Собираем информацию о рационах (приемах пищи) из раскладки
-            const mealTypesByDay = []; // Типы приемов пищи по дням
-            const productMealUsage = new Map(); // productName -> {dayIndex: count}
-
-            layoutDays.forEach((dayElement, dayIndex) => {
-                const meals = dayElement.querySelectorAll('.meal');
-                let dayMealTypes = [];
-
-                meals.forEach(mealElement => {
-                    const mealType = mealElement.querySelector('.meal-title').textContent.trim();
-                    const products = mealElement.querySelectorAll('.product-item');
-
-                    if (products.length > 0) {
-                        dayMealTypes.push(mealType);
-                    }
-
-                    products.forEach(productElement => {
-                        const productName = productElement.dataset.productName;
-                        if (productName) {
-                            if (!productMealUsage.has(productName)) {
-                                productMealUsage.set(productName, {});
-                            }
-                            const usage = productMealUsage.get(productName);
-                            usage[dayIndex] = (usage[dayIndex] || 0) + 1;
-                        }
-                    });
-                });
-
-                mealTypesByDay.push(dayMealTypes);
-            });
 
             console.log('Типы приемов пищи по дням:', mealTypesByDay);
 
@@ -1855,7 +1761,7 @@
                     `${Math.round(weightPerMealForPeople)} г`;
 
                 // Получаем информацию о использовании в рационах
-                const mealUsage = productMealUsage.get(result.name) || {};
+                const mealUsage = productMealUsage[result.name] || {};
 
                 mainHtml += `
                     <tr>
