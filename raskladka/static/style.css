@@ -1,52 +1,236 @@
-/* raskladka/static/style.css */
-/* Стили для страниц login и register */
+/* ====================================
+   РАСКЛАДКА ПРОДУКТОВ - ГЛАВНЫЕ СТИЛИ
+   ==================================== */
+
+/* === БАЗОВЫЕ СТИЛИ === */
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
-    padding: 20px;
+    padding: 0;
     background: #f8f9fa;
     color: #333;
     min-height: 100vh;
+}
+
+/* === ХЕДЕР И НАВИГАЦИЯ === */
+.app-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+}
+
+.logo-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.app-title {
+    margin: 0;
+    font-size: 1.8em;
+    font-weight: 600;
+    color: white;
+}
+
+.app-subtitle {
+    margin: 0;
+    font-size: 0.9em;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+.main-nav {
+    flex: 1;
     display: flex;
     justify-content: center;
+}
+
+.nav-tabs {
+    display: flex;
+    gap: 10px;
+    background: rgba(255,255,255,0.1);
+    padding: 8px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.nav-tab {
+    background: transparent;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-tab:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+}
+
+.nav-tab.active {
+    background: rgba(255,255,255,0.25);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.tab-icon {
+    font-size: 1.1em;
+}
+
+.user-section {
+    display: flex;
     align-items: center;
 }
 
-.container {
-    max-width: 400px;
-    width: 100%;
-    padding: 30px;
+.logout-btn {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 10px 16px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.logout-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+}
+
+.btn-icon {
+    font-size: 1.1em;
+}
+
+/* === ОСНОВНЫЕ КОНТЕЙНЕРЫ === */
+.app-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.main-container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 25px;
+    min-height: calc(100vh - 140px);
+}
+
+/* === ВКЛАДКИ === */
+.tab-content {
+    flex: 1;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+/* === БОКОВАЯ ПАНЕЛЬ === */
+.sidebar {
     background: white;
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    padding: 20px;
+    height: fit-content;
+    position: sticky;
+    top: 15px;
 }
 
-.container h1 {
-    text-align: center;
-    margin-bottom: 30px;
+.sidebar h3 {
+    margin: 0 0 15px 0;
+    font-size: 1.4em;
+    font-weight: 600;
     color: #495057;
-    font-weight: 300;
-    font-size: 2em;
+    text-align: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
 }
 
-.container input {
+.plan-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+}
+
+.plan-list li {
+    padding: 10px 14px;
+    margin: 6px 0;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    font-weight: 500;
+    color: #495057;
+}
+
+.plan-list li:hover {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+    transform: translateX(5px);
+}
+
+.plan-list li.selected-plan {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.create-plan-section {
+    padding: 15px 0;
+    border-top: 2px solid #e9ecef;
+}
+
+.new-plan-input {
     width: 100%;
     padding: 12px 16px;
-    margin: 15px 0;
     border: 2px solid #dee2e6;
     border-radius: 10px;
-    font-size: 1em;
-    box-sizing: border-box;
+    font-size: 0.95em;
+    margin-bottom: 15px;
     transition: all 0.3s ease;
     outline: none;
 }
 
-.container input:focus {
+.new-plan-input:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.container button {
+.create-plan-btn {
     width: 100%;
     padding: 12px 16px;
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
@@ -54,48 +238,1168 @@ body {
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    font-size: 1em;
     font-weight: 600;
-    margin-top: 20px;
+    font-size: 0.95em;
     transition: all 0.3s ease;
 }
 
-.container button:hover {
+.create-plan-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
 }
 
-.login-link,
-.register-link {
-    text-align: center;
-    margin-top: 25px;
+/* === ОСНОВНОЙ КОНТЕНТ === */
+.main-content {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    padding: 20px;
+    overflow-y: auto;
 }
 
-.login-link a,
-.register-link a {
-    color: #667eea;
-    text-decoration: none;
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.plan-title-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.plan-title {
+    font-size: 2.2em;
+    font-weight: 300;
+    color: #495057;
+    margin: 0;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.plan-title:hover {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.plan-title.editing {
+    background: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.plan-title-input {
+    font-size: 2.2em;
+    font-weight: 300;
+    color: #856404;
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 10px;
+    padding: 8px 12px;
+    width: 400px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.plan-title-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.header-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.delete-plan-btn {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
     font-weight: 500;
     transition: all 0.3s ease;
 }
 
-.login-link a:hover,
-.register-link a:hover {
-    color: #5a32a3;
-    text-decoration: underline;
+.delete-plan-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
 }
 
-/* Адаптивность для мобильных устройств */
-@media (max-width: 480px) {
+.auth-links a {
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.auth-links a:hover {
+    background: #f8f9fa;
+    color: #495057;
+}
+
+/* === ДНИ И РАЦИОНЫ === */
+.days-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+    margin-bottom: 20px !important;
+    width: 100% !important;
+}
+
+.day-container {
+    flex: 1 1 400px !important;
+    min-width: 400px !important;
+    max-width: calc(50% - 10px) !important;
+    border: 2px solid #e9ecef !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    background: #fafbfc !important;
+    height: fit-content !important;
+    transition: all 0.3s ease !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+}
+
+@media (min-width: 1600px) {
+    .day-container {
+        flex: 1 1 350px !important;
+        min-width: 350px !important;
+        max-width: calc(33.333% - 14px) !important;
+    }
+}
+
+.day-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.day-header {
+    background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+    color: white;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.day-header h2 {
+    margin: 0;
+    font-size: 1.4em;
+    font-weight: 400;
+}
+
+.edit-day-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
+.edit-day-btn:hover {
+    background: rgba(255,255,255,0.3);
+    border-color: rgba(255,255,255,0.5);
+    transform: translateY(-2px);
+}
+
+.day-content {
+    padding: 12px;
+}
+
+.add-day-btn {
+    background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.1em;
+    margin: 20px 0;
+    transition: all 0.3s ease;
+    display: block;
+    width: 100%;
+}
+
+.add-day-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(253, 126, 20, 0.3);
+}
+
+/* === ПРИЕМЫ ПИЩИ === */
+.meal {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.meal:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+}
+
+.meal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.meal-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #495057;
+}
+
+.meal-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.delete-meal-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.3s ease;
+}
+
+.delete-meal-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+.add-meal-btn {
+    background: #6f42c1;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1.05em;
+    margin: 12px 0;
+    transition: all 0.3s ease;
+    display: block;
+    width: 100%;
+}
+
+.add-meal-btn:hover {
+    background: #5a32a3;
+    transform: translateY(-2px);
+}
+
+/* === ПРОДУКТЫ === */
+.product-list {
+    margin-top: 15px;
+}
+
+.product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    margin: 2px 0;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.product-item:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+.product-item.editing {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.product-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.product-display {
+    font-size: 0.95em;
+    color: #495057;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.product-display:hover {
+    background: transparent;
+    border-color: transparent;
+}
+
+.product-display.editing {
+    display: none;
+}
+
+.product-edit-form {
+    display: none;
+    gap: 8px;
+    align-items: center;
+    flex: 1;
+}
+
+.product-edit-form.showing {
+    display: flex;
+}
+
+.edit-input {
+    padding: 8px 12px;
+    border: 2px solid #ced4da;
+    border-radius: 8px;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.edit-input:focus {
+    border-color: #2196f3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.edit-input[data-type="name"] {
+    width: 200px;
+}
+
+.edit-input[data-type="weight"] {
+    width: 120px;
+}
+
+.product-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.edit-product-btn,
+.delete-product-btn,
+.save-product-btn,
+.cancel-edit-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-size: 0.85em;
+}
+
+.edit-product-btn {
+    background: #17a2b8;
+    color: white;
+}
+
+.edit-product-btn:hover {
+    background: #138496;
+    transform: translateY(-1px);
+}
+
+.save-product-btn {
+    background: #28a745;
+    color: white;
+}
+
+.save-product-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.cancel-edit-btn {
+    background: #6c757d;
+    color: white;
+}
+
+.cancel-edit-btn:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.delete-product-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.delete-product-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+/* === ФОРМЫ ДОБАВЛЕНИЯ === */
+.add-product-form {
+    margin-top: 5px;
+    padding: 5px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+}
+
+.form-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.product-name,
+.product-weight {
+    padding: 6px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.product-name:focus,
+.product-weight:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.product-name {
+    width: 200px;
+}
+
+.product-weight {
+    width: 100px;
+}
+
+.add-product-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.add-product-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+/* === КАЛЬКУЛЯТОР === */
+.calculator-content {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    padding: 25px;
+    height: 100%;
+}
+
+.calculator-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.calculator-header h2 {
+    margin: 0 0 10px 0;
+    font-size: 2em;
+    font-weight: 600;
+    color: #495057;
+}
+
+.calculator-header p {
+    margin: 0;
+    font-size: 1.1em;
+    color: #6c757d;
+}
+
+.calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    height: calc(100% - 120px);
+}
+
+.calculator-panel {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #e9ecef;
+}
+
+.calculator-panel h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.4em;
+    font-weight: 600;
+    color: #495057;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.product-categories {
+    height: calc(100% - 60px);
+    overflow-y: auto;
+}
+
+.category-section {
+    margin-bottom: 25px;
+}
+
+.category-section h4 {
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #495057;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.product-list-calc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.product-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    color: #495057;
+}
+
+.product-checkbox:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
+    transform: translateX(5px);
+}
+
+.product-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    margin-right: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.product-checkbox input[type="checkbox"]:checked + .checkmark {
+    background: #667eea;
+    border-color: #667eea;
+}
+
+.product-checkbox input[type="checkbox"]:checked + .checkmark::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* === ИНФОРМАЦИЯ О РАСКЛАДКЕ === */
+.layout-info {
+    height: calc(100% - 60px);
+    overflow-y: auto;
+}
+
+.layout-summary {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 2px solid #e9ecef;
+}
+
+.layout-summary h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 1.2em;
+    text-align: center;
+}
+
+.layout-summary p {
+    margin: 8px 0;
+    color: #6c757d;
+    font-size: 0.95em;
+}
+
+.layout-details h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 1.1em;
+}
+
+.day-summary {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 2px solid #e9ecef;
+}
+
+.day-summary h5 {
+    margin: 0 0 10px 0;
+    color: #495057;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.meals-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.meal-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+.meal-type {
+    font-weight: 600;
+    color: #495057;
+}
+
+.products-count {
+    color: #6c757d;
+    font-size: 0.85em;
+}
+
+.calculation-info {
+    margin-bottom: 25px;
+}
+
+.info-box {
+    background: #e3f2fd;
+    border-radius: 10px;
+    padding: 15px;
+    border-left: 4px solid #2196f3;
+}
+
+.info-box h4 {
+    margin: 0 0 10px 0;
+    color: #1976d2;
+    font-size: 1em;
+}
+
+.info-box ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #1976d2;
+    font-size: 0.9em;
+}
+
+.info-box li {
+    margin: 5px 0;
+}
+
+.calculation-settings {
+    margin-bottom: 25px;
+}
+
+.setting-group {
+    margin-bottom: 20px;
+}
+
+.setting-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.setting-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.setting-group input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.calculate-section {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.calculate-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+}
+
+.calculate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
+.results-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    border: 2px solid #e9ecef;
+}
+
+.results-section h4 {
+    margin: 0 0 15px 0;
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #495057;
+    text-align: center;
+}
+
+.results-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin: 8px 0;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.result-item .product-name {
+    font-weight: 600;
+    color: #495057;
+}
+
+.result-item .product-amount {
+    font-weight: 600;
+    color: #28a745;
+}
+
+.result-product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.product-occurrences {
+    font-size: 0.85em;
+    color: #6c757d;
+    font-weight: normal;
+}
+
+/* === ТАБЛИЦА РЕЗУЛЬТАТОВ === */
+.results-table-container {
+    margin-top: 20px;
+    overflow-x: auto;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.results-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.results-table th {
+    padding: 15px 20px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1em;
+    border: none;
+    vertical-align: top;
+}
+
+.results-table th:first-child {
+    text-align: left;
+}
+
+.results-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.results-table tbody tr:hover {
+    background: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.results-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.results-table td {
+    padding: 15px 20px;
+    font-size: 1em;
+    border: none;
+    text-align: center;
+}
+
+.results-table td:first-child {
+    text-align: left;
+}
+
+.product-name-cell {
+    font-weight: 600;
+    color: #495057;
+}
+
+.occurrences-cell {
+    text-align: center;
+    font-weight: 600;
+    color: #6f42c1;
+    background: #f8f9ff;
+}
+
+.weight-per-person-cell {
+    text-align: center;
+    font-weight: 600;
+    color: #fd7e14;
+    background: #fff8f0;
+}
+
+.meal-usage-cell {
+    text-align: center;
+    font-weight: 600;
+    color: #495057;
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+}
+
+.meal-usage-empty-cell {
+    text-align: center;
+    color: #adb5bd;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.weight-cell {
+    text-align: right;
+    font-weight: 600;
+    color: #28a745;
+    background: #f8fff9;
+}
+
+/* === ОСНОВНАЯ СЕКЦИЯ РЕЗУЛЬТАТОВ === */
+.main-results-section {
+    margin-bottom: 30px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    padding: 25px;
+}
+
+.main-results-section h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.8em;
+    font-weight: 600;
+    color: #495057;
+    text-align: center;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.main-results-content {
+    width: 100%;
+}
+
+/* === УВЕДОМЛЕНИЯ === */
+.success-message {
+    background: #28a745;
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+    animation: slideIn 0.3s ease;
+    max-width: 500px;
+    min-width: 300px;
+    word-wrap: break-word;
+    line-height: 1.5;
+    font-size: 14px;
+    border-left: 4px solid #1e7e34;
+    margin-bottom: 10px;
+}
+
+.error-message {
+    background: #dc3545;
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+    animation: slideIn 0.3s ease;
+    max-width: 500px;
+    min-width: 300px;
+    word-wrap: break-word;
+    line-height: 1.5;
+    font-size: 14px;
+    border-left: 4px solid #c82333;
+    margin-bottom: 10px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 1200px) {
+    .main-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .sidebar {
+        position: static;
+        order: 2;
+    }
+
+    .day-container {
+        flex: 1 1 350px !important;
+        min-width: 350px !important;
+        max-width: calc(50% - 8px) !important;
+    }
+
+    .days-grid {
+        gap: 15px !important;
+    }
+}
+
+@media (max-width: 768px) {
     body {
+        padding: 0;
+    }
+
+    #message-container {
+        right: 15px;
+        left: 15px;
+    }
+
+    .error-message,
+    .success-message {
+        max-width: calc(100vw - 30px);
+        min-width: auto;
+        font-size: 13px;
+        padding: 14px 20px;
+    }
+
+    .day-container {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .days-grid {
+        gap: 15px !important;
+    }
+
+    .header-content {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .main-nav {
+        order: 2;
+    }
+
+    .nav-tabs {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .nav-tab {
+        justify-content: center;
+    }
+
+    .app-wrapper {
+        padding: 0 15px;
+    }
+
+    .app-container {
         padding: 15px;
     }
 
-    .container {
-        padding: 25px 20px;
+    .main-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
     }
 
-    .container h1 {
+    .sidebar {
+        position: static;
+        order: 2;
+    }
+
+    .main-content {
+        padding: 15px;
+    }
+
+    .content-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+
+    .plan-title {
         font-size: 1.8em;
+    }
+
+    .plan-title-input {
+        width: 100%;
+        font-size: 1.8em;
+    }
+
+    .day-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .meal-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .product-item {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .product-info {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .product-edit-form {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .form-row {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .edit-input,
+    .product-name,
+    .product-weight {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    /* Адаптивность для калькулятора */
+    .calculator-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .calculator-content {
+        padding: 15px;
+    }
+
+    .calculator-header h2 {
+        font-size: 1.6em;
+    }
+
+    .calculator-panel {
+        padding: 15px;
+    }
+
+    /* Адаптивность для таблицы результатов */
+    .results-table-container {
+        overflow-x: auto;
+    }
+
+    .results-table {
+        min-width: 1200px;
+    }
+
+    .results-table th,
+    .results-table td {
+        padding: 10px 12px;
+        font-size: 0.9em;
+    }
+
+    .main-results-section {
+        padding: 15px;
+    }
+
+    .main-results-section h3 {
+        font-size: 1.5em;
     }
 }
