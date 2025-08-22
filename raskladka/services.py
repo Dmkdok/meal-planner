@@ -1,10 +1,81 @@
 # raskladka/services.py
 from typing import List, Dict, Any
 from raskladka.models import MealPlan, Day, Meal, Product
+from raskladka.utils import (
+    normalize_product_name_display,
+    canonical_product_key,
+)
 
 
 class CalculationService:
     """Сервис для расчета продуктов на основе раскладки"""
+
+    @staticmethod
+    def _build_products_map(meal_plan: MealPlan) -> Dict[str, Dict[str, Any]]:
+        """
+        Собирает продукты, объединяя по каноническому ключу.
+        Возвращает словарь:
+        canonical_key -> {display_name, weight, occurrences, meal_types}
+        """
+        products_map: Dict[str, Dict[str, Any]] = {}
+
+        for day in meal_plan.days:
+            for meal in day.meals:
+                for product in meal.products:
+                    key = canonical_product_key(product.name)
+                    display_name = normalize_product_name_display(product.name)
+                    product_weight = product.weight
+
+                    if key in products_map:
+                        products_map[key]["weight"] += product_weight
+                        products_map[key]["occurrences"] += 1
+                        meal_types = products_map[key]["meal_types"]
+                        if meal.meal_type not in meal_types:
+                            meal_types.append(meal.meal_type)
+                    else:
+                        products_map[key] = {
+                            "display_name": display_name,
+                            "weight": product_weight,
+                            "occurrences": 1,
+                            "meal_types": [meal.meal_type],
+                        }
+        return products_map
+
+    @staticmethod
+    def _build_meal_usage(
+        meal_plan: MealPlan,
+        products_map: Dict[str, Dict[str, Any]],
+    ) -> tuple[list[list[str]], Dict[str, Dict[int, int]]]:
+        """
+        Собирает информацию о типах приемов пищи по дням и карту использования
+        продуктов (по отображаемым именам).
+        """
+        meal_types_by_day: list[list[str]] = []
+        product_meal_usage: Dict[str, Dict[int, int]] = {}
+
+        for day_index, day in enumerate(meal_plan.days):
+            day_meal_types: list[str] = []
+            for meal in day.meals:
+                if meal.products:
+                    day_meal_types.append(meal.meal_type)
+
+                for product in meal.products:
+                    key = canonical_product_key(product.name)
+                    display_name = (
+                        products_map[key]["display_name"]
+                        if key in products_map
+                        else normalize_product_name_display(product.name)
+                    )
+                    if display_name not in product_meal_usage:
+                        product_meal_usage[display_name] = {}
+                    usage_for_day = product_meal_usage[display_name]
+                    usage_for_day[day_index] = (
+                        usage_for_day.get(day_index, 0) + 1
+                    )
+
+            meal_types_by_day.append(day_meal_types)
+
+        return meal_types_by_day, product_meal_usage
 
     @staticmethod
     def calculate_products_from_layout(
@@ -24,48 +95,24 @@ class CalculationService:
         if not meal_plan.days:
             return {"error": "В раскладке нет дней", "success": False}
 
-        # Собираем все продукты из раскладки
-        products_map = {}  # product_name -> {weight, occurrences, meal_types}
-
-        for day in meal_plan.days:
-            for meal in day.meals:
-                for product in meal.products:
-                    product_name = product.name
-                    product_weight = product.weight
-
-                    if product_name in products_map:
-                        products_map[product_name]["weight"] += product_weight
-                        products_map[product_name]["occurrences"] += 1
-                        if (
-                            meal.meal_type
-                            not in products_map[product_name]["meal_types"]
-                        ):
-                            products_map[product_name]["meal_types"].append(
-                                meal.meal_type
-                            )
-                    else:
-                        products_map[product_name] = {
-                            "weight": product_weight,
-                            "occurrences": 1,
-                            "meal_types": [meal.meal_type],
-                        }
-
+        products_map = CalculationService._build_products_map(meal_plan)
         if not products_map:
             return {"error": "В раскладке нет продуктов", "success": False}
 
-        # Рассчитываем количество повторений раскладки
         layout_days_count = len(meal_plan.days)
         layout_repetitions = (
             trip_days + layout_days_count - 1
-        ) // layout_days_count  # Округление вверх
+        ) // layout_days_count
         actual_days_used = layout_repetitions * layout_days_count
 
-        # Генерируем результаты
         results = []
-        for product_name, product_data in products_map.items():
-            total_weight = product_data["weight"] * layout_repetitions * people_count
-            total_occurrences = product_data["occurrences"] * layout_repetitions
-            # Вес продукта за один прием пищи (среднее по всем приемам)
+        for key, product_data in products_map.items():
+            total_weight = (
+                product_data["weight"] * layout_repetitions * people_count
+            )
+            total_occurrences = (
+                product_data["occurrences"] * layout_repetitions
+            )
             weight_per_meal = (
                 product_data["weight"] / product_data["occurrences"]
                 if product_data["occurrences"] > 0
@@ -74,7 +121,7 @@ class CalculationService:
 
             results.append(
                 {
-                    "name": product_name,
+                    "name": product_data["display_name"],
                     "weight": total_weight,
                     "occurrences": total_occurrences,
                     "weight_per_meal": weight_per_meal,
@@ -83,30 +130,12 @@ class CalculationService:
                 }
             )
 
-        # Сортируем результаты по весу (по убыванию)
         results.sort(key=lambda x: x["weight"], reverse=True)
 
-        # Собираем информацию о рационах по дням
-        meal_types_by_day = []
-        product_meal_usage = {}  # product_name -> {day_index: count}
+        meal_types_by_day, product_meal_usage = (
+            CalculationService._build_meal_usage(meal_plan, products_map)
+        )
 
-        for day_index, day in enumerate(meal_plan.days):
-            day_meal_types = []
-            for meal in day.meals:
-                if meal.products:
-                    day_meal_types.append(meal.meal_type)
-
-                for product in meal.products:
-                    product_name = product.name
-                    if product_name not in product_meal_usage:
-                        product_meal_usage[product_name] = {}
-                    product_meal_usage[product_name][day_index] = (
-                        product_meal_usage[product_name].get(day_index, 0) + 1
-                    )
-
-            meal_types_by_day.append(day_meal_types)
-
-        # Рассчитываем общий вес
         total_weight = sum(result["weight"] for result in results)
 
         return {
@@ -130,7 +159,9 @@ class MealPlanService:
     """Сервис для работы с планами питания"""
 
     @staticmethod
-    def create_default_plan(user_id: int, name: str = "Current Plan") -> MealPlan:
+    def create_default_plan(
+        user_id: int, name: str = "Current Plan"
+    ) -> MealPlan:
         """Создает план питания с дефолтными данными"""
         from raskladka import db
 
@@ -156,14 +187,18 @@ class MealPlanService:
     @staticmethod
     def get_plan_by_id(plan_id: int, user_id: int) -> MealPlan:
         """Получает план по ID с проверкой принадлежности пользователю"""
-        return MealPlan.query.filter_by(id=plan_id, user_id=user_id).first()
+        return MealPlan.query.filter_by(
+            id=plan_id, user_id=user_id
+        ).first()
 
     @staticmethod
     def delete_plan(plan_id: int, user_id: int) -> bool:
         """Удаляет план питания"""
         from raskladka import db
 
-        meal_plan = MealPlan.query.filter_by(id=plan_id, user_id=user_id).first()
+        meal_plan = MealPlan.query.filter_by(
+            id=plan_id, user_id=user_id
+        ).first()
         if meal_plan:
             db.session.delete(meal_plan)
             db.session.commit()
@@ -175,7 +210,9 @@ class MealPlanService:
         """Обновляет название плана питания"""
         from raskladka import db
 
-        meal_plan = MealPlan.query.filter_by(id=plan_id, user_id=user_id).first()
+        meal_plan = MealPlan.query.filter_by(
+            id=plan_id, user_id=user_id
+        ).first()
         if meal_plan:
             meal_plan.name = new_name
             db.session.commit()
@@ -191,7 +228,10 @@ class DayService:
         """Добавляет новый день в план"""
         from raskladka import db
 
-        meal_plan = MealPlan.query.filter_by(id=plan_id, user_id=user_id).first()
+        meal_plan = MealPlan.query.filter_by(
+            id=plan_id,
+            user_id=user_id,
+        ).first()
         if meal_plan:
             new_day = Day(meal_plan=meal_plan, day_number=day_number)
             db.session.add(new_day)
@@ -221,14 +261,20 @@ class MealService:
     """Сервис для работы с приемами пищи"""
 
     @staticmethod
-    def add_meal(plan_id: int, user_id: int, day_number: int, meal_type: str) -> bool:
+    def add_meal(
+        plan_id: int, user_id: int, day_number: int, meal_type: str
+    ) -> bool:
         """Добавляет новый прием пищи"""
         from raskladka import db
 
-        meal_plan = MealPlan.query.filter_by(id=plan_id, user_id=user_id).first()
+        meal_plan = MealPlan.query.filter_by(
+            id=plan_id,
+            user_id=user_id,
+        ).first()
         if meal_plan:
             day = Day.query.filter_by(
-                meal_plan_id=plan_id, day_number=day_number
+                meal_plan_id=plan_id,
+                day_number=day_number,
             ).first()
             if day:
                 new_meal = Meal(day=day, meal_type=meal_type)
@@ -245,7 +291,10 @@ class MealService:
         meal = (
             Meal.query.join(Day)
             .join(MealPlan)
-            .filter(Meal.id == meal_id, MealPlan.user_id == user_id)
+            .filter(
+                Meal.id == meal_id,
+                MealPlan.user_id == user_id,
+            )
             .first()
         )
 
@@ -278,55 +327,61 @@ class ProductService:
     """Сервис для работы с продуктами"""
 
     @staticmethod
-    def validate_product_name_weight(user_id: int, name: str, weight: int, exclude_product_id: int = None) -> tuple[bool, str]:
+    def validate_product_name_weight(
+        user_id: int,
+        name: str,
+        weight: int,
+        exclude_product_id: int = None,
+    ) -> tuple[bool, str]:
         """
-        Валидирует, что продукты с одинаковым именем имеют одинаковый вес
-
-        Args:
-            user_id: ID пользователя
-            name: Название продукта
-            weight: Вес продукта
-            exclude_product_id: ID продукта для исключения из проверки (при обновлении)
-
-        Returns:
-            tuple[bool, str]: (is_valid, error_message)
+        Валидирует, что продукты с одинаковым именем имеют одинаковый вес.
+        Сравнение имени выполняется без учета регистра и лишних пробелов.
         """
-        # Получаем все продукты пользователя с таким же именем
+        normalized_display = normalize_product_name_display(name)
+        key = canonical_product_key(name)
+
         query = (
             Product.query.join(Meal)
             .join(Day)
             .join(MealPlan)
-            .filter(MealPlan.user_id == user_id, Product.name == name)
+            .filter(MealPlan.user_id == user_id)
         )
-
         if exclude_product_id:
-            query = query.filter(Product.id != exclude_product_id)
-
+            query = query.filter(
+                Product.id != exclude_product_id
+            )
         existing_products = query.all()
 
-        if existing_products:
-            # Проверяем, что все продукты с таким именем имеют одинаковый вес
-            for product in existing_products:
+        for product in existing_products:
+            if canonical_product_key(product.name) == key:
                 if product.weight != weight:
                     error_msg = (
-                        f"Продукт '{name}' уже существует с весом "
-                        f"{product.weight}г. Для добавления продукта с другим "
-                        f"весом используйте другое название (например, "
-                        f"'{name} утро' или '{name} вечер')."
+                        "Продукт '"
+                        + normalized_display
+                        + "' уже существует с весом "
+                        + str(product.weight)
+                        + "г. Для добавления продукта с другим весом "
+                        + "используйте другое название (например, '"
+                        + normalized_display
+                        + " утро' или '"
+                        + normalized_display
+                        + " вечер')."
                     )
                     return False, error_msg
 
-        # Если все продукты с таким именем имеют одинаковый вес (или их нет), то разрешаем
         return True, ""
 
     @staticmethod
-    def add_product(meal_id: int, user_id: int, name: str, weight: int) -> tuple[bool, str]:
+    def add_product(
+        meal_id: int, user_id: int, name: str, weight: int
+    ) -> tuple[bool, str]:
         """Добавляет новый продукт"""
         from raskladka import db
 
-        # Валидируем имя и вес продукта
+        display_name = normalize_product_name_display(name)
+
         is_valid, error_message = ProductService.validate_product_name_weight(
-            user_id, name, weight
+            user_id, display_name, weight
         )
         if not is_valid:
             return False, error_message
@@ -339,20 +394,23 @@ class ProductService:
         )
 
         if meal:
-            new_product = Product(meal=meal, name=name, weight=weight)
+            new_product = Product(meal=meal, name=display_name, weight=weight)
             db.session.add(new_product)
             db.session.commit()
             return True, ""
         return False, "Прием пищи не найден или доступ запрещён"
 
     @staticmethod
-    def update_product(product_id: int, user_id: int, name: str, weight: int) -> tuple[bool, str]:
+    def update_product(
+        product_id: int, user_id: int, name: str, weight: int
+    ) -> tuple[bool, str]:
         """Обновляет продукт"""
         from raskladka import db
 
-        # Валидируем имя и вес продукта (исключаем текущий продукт из проверки)
+        display_name = normalize_product_name_display(name)
+
         is_valid, error_message = ProductService.validate_product_name_weight(
-            user_id, name, weight, exclude_product_id=product_id
+            user_id, display_name, weight, exclude_product_id=product_id
         )
         if not is_valid:
             return False, error_message
@@ -366,7 +424,7 @@ class ProductService:
         )
 
         if product:
-            product.name = name
+            product.name = display_name
             product.weight = weight
             db.session.commit()
             return True, ""
@@ -381,7 +439,10 @@ class ProductService:
             Product.query.join(Meal)
             .join(Day)
             .join(MealPlan)
-            .filter(Product.id == product_id, MealPlan.user_id == user_id)
+            .filter(
+                Product.id == product_id,
+                MealPlan.user_id == user_id,
+            )
             .first()
         )
 

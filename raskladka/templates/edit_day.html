@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактирование дня - {{ meal_plan.name }}</title>
+    <title>Редактирование рациона - {{ meal_plan.name }}</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23e3f2fd' stroke='%23667eea' stroke-width='1'/><circle cx='12' cy='14' r='3' fill='%23ff6b6b'/><path d='M16 8c-2 0-4 1-5 3-1 2-1 4 0 6 1 2 3 3 5 3s4-1 5-3c1-2 1-4 0-6-1-2-3-3-5-3z' fill='%23ff6b6b'/><text x='16' y='22' text-anchor='middle' fill='%23667eea' font-family='Arial' font-size='8' font-weight='bold'>РП</text></svg>">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
@@ -428,11 +428,26 @@
             display: none;
             max-width: 300px;
             word-wrap: break-word;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            z-index: 1000;
         }
 
         .field-error.show {
             display: block;
             animation: fadeIn 0.3s ease;
+        }
+
+        /* Расширяем ширину подсказок ошибок от начала названия до конца веса */
+        .add-product-form .form-row .field-error {
+            width: 415px; /* 250px (name) + 15px (gap) + 150px (weight) */
+            max-width: none;
+        }
+
+        .product-edit-form .field-error {
+            width: 328px; /* 200px (name) + 8px (gap) + 120px (weight) */
+            max-width: none;
         }
 
         @keyframes fadeIn {
@@ -459,6 +474,7 @@
             flex-direction: column;
             align-items: center;
             gap: 5px;
+            position: relative;
         }
 
         @media (max-width: 768px) {
@@ -521,7 +537,7 @@
 <body>
     <div class="edit-day-container">
         <div class="day-header">
-            <h1>День {{ day.day_number }} - {{ meal_plan.name }}</h1>
+            <h1>Рацион {{ day.day_number }} - {{ meal_plan.name }}</h1>
             <div class="header-actions">
                 <a href="{{ url_for('views.index', plan_id=meal_plan.id) }}" class="back-btn">← Назад к раскладке</a>
                 <button class="delete-day-btn" onclick="deleteDay({{ day.id }})">Удалить рацион</button>
@@ -670,6 +686,24 @@
             }
         }
 
+        // Случайная веселая подсказка для некорректного веса
+        function getRandomWeightHint() {
+            const messages = [
+                'Ого, продукт невесомый? Кажется, он парит в космосе! 🚀 Укажите вес, чтобы вернуть его на Землю!',
+                'Вес 0 грамм? Это что, продукт из антиматерии? 😄 Попробуйте ввести реальный вес!',
+                'Этот продукт слишком стесняется, чтобы показать свой вес! 😳 Помогите ему, введите число больше нуля!',
+                'Продукт говорит: \"Я не пустышка!\" 😜 Укажите его вес, пожалуйста!',
+                'Вес 0? Это что, вы заказали только запах? 😋 Укажите вес продукта, чтобы мы могли его отправить!',
+                'Нулевой вес? Это секретный ингредиент для невидимых блюд? 🥐 Введите вес, чтобы мы знали, что паковать!',
+                'Вес 0 грамм? Это что, продукт из ТАРДИС Доктора Кто? 🕰️ Укажите вес, чтобы мы не потеряли его во времени!',
+                'Вес 0? Даже перышко Гриффиндора весит больше! ⚡ Укажите реальный вес!',
+                'Ой, кажется, вес потерялся! 😅 Давайте найдем его — введите число больше нуля!',
+                'Нулевой вес? Мы знаем, что ваш продукт крутой, но дайте ему шанс показать свой вес! 😎'
+            ];
+            const idx = Math.floor(Math.random() * messages.length);
+            return messages[idx];
+        }
+
         // Очистить все ошибки для приема пищи
         function clearMealErrors(mealId) {
             hideFieldError(`name-error-${mealId}`);
@@ -798,12 +832,18 @@
                 return;
             }
 
+            const parsedWeight = parseInt(weight, 10);
+            if (isNaN(parsedWeight) || parsedWeight < 1) {
+                showFieldError(`edit-weight-error-${productId}`, getRandomWeightHint());
+                return;
+            }
+
             try {
                 const requestData = {
                     action: 'update_product',
                     product_id: productId,
                     name: name,
-                    weight: parseInt(weight)
+                    weight: parsedWeight
                 };
 
                 console.log('Обновление продукта:', requestData);
@@ -830,8 +870,11 @@
 
                     showMessage('Продукт обновлен');
                 } else {
-                    // Показываем ошибку как глобальное сообщение
-                    showMessage(data.message || 'Не удалось обновить продукт', 'error');
+                    if (data.message && data.message.includes('уже существует')) {
+                        showFieldError(`edit-weight-error-${productId}`, data.message);
+                    } else {
+                        showMessage(data.message || 'Не удалось обновить продукт', 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Ошибка при обновлении продукта:', error);
@@ -997,12 +1040,18 @@
                 return;
             }
 
+            const parsedNewWeight = parseInt(weight, 10);
+            if (isNaN(parsedNewWeight) || parsedNewWeight < 1) {
+                showFieldError(`weight-error-${mealId}`, getRandomWeightHint());
+                return;
+            }
+
             try {
                 const requestData = {
                     action: 'add_product',
                     meal_id: mealId,
                     name: name,
-                    weight: parseInt(weight)
+                    weight: parsedNewWeight
                 };
 
                 console.log('Отправляем данные:', requestData);
@@ -1025,8 +1074,11 @@
                     productWeightInput.value = '';
                     location.reload();
                 } else {
-                    // Показываем ошибку как глобальное сообщение
-                    showMessage(data.message || 'Не удалось добавить продукт', 'error');
+                    if (data.message && data.message.includes('уже существует')) {
+                        showFieldError(`weight-error-${mealId}`, data.message);
+                    } else {
+                        showMessage(data.message || 'Не удалось добавить продукт', 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Ошибка при добавлении продукта:', error);
