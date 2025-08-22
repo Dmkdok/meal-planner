@@ -1,8 +1,22 @@
 # raskladka/views.py
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, send_file
-from flask_login import login_user, login_required, logout_user, current_user
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    jsonify,
+    redirect,
+    url_for,
+    flash,
+    send_file,
+)
+from flask_login import (
+    login_user,
+    login_required,
+    logout_user,
+    current_user,
+)
 from raskladka import db, bcrypt
-from raskladka.models import User, MealPlan, Day, Meal, Product
+from raskladka.models import User, MealPlan, Day
 from raskladka.services import (
     CalculationService,
     MealPlanService,
@@ -18,6 +32,295 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 views = Blueprint("views", __name__)
 
 
+def _json_error(message, status_code=400):
+    return jsonify({"status": "error", "message": message}), status_code
+
+
+# Handlers for POST actions on index
+def _handle_delete_plan(data):
+    plan_id = data.get("plan_id")
+    success = MealPlanService.delete_plan(plan_id, current_user.id)
+    if success:
+        return jsonify(
+            {"status": "success", "redirect": url_for("views.index")}
+        )
+    return _json_error("Раскладка не найдена или доступ запрещён")
+
+
+def _handle_update_plan_name(data):
+    plan_id = data.get("plan_id")
+    new_name = data.get("new_name")
+    success = MealPlanService.update_plan_name(
+        plan_id, current_user.id, new_name
+    )
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error("Раскладка не найдена или доступ запрещён")
+
+
+def _handle_delete_day(data):
+    success = DayService.delete_day(data.get("day_id"), current_user.id)
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error("День не найден или доступ запрещён")
+
+
+def _handle_update_product(data):
+    success, message = ProductService.update_product(
+        data.get("product_id"),
+        current_user.id,
+        data.get("name"),
+        data.get("weight"),
+    )
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error(message)
+
+
+def _handle_delete_product(data):
+    success = ProductService.delete_product(
+        data.get("product_id"), current_user.id
+    )
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error("Продукт не найден или доступ запрещён")
+
+
+def _handle_add_day(data):
+    success = DayService.add_day(
+        data.get("plan_id"), current_user.id, data.get("day_number")
+    )
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error("Раскладка не найдена или доступ запрещён")
+
+
+def _handle_add_meal(data):
+    success = MealService.add_meal(
+        data.get("plan_id"),
+        current_user.id,
+        data.get("day_number"),
+        data.get("meal_type"),
+    )
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error("День или раскладка не найдены")
+
+
+def _handle_add_product(data):
+    success, message = ProductService.add_product(
+        data.get("meal_id"),
+        current_user.id,
+        data.get("name"),
+        data.get("weight"),
+    )
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error(message)
+
+
+def _handle_remove_meal(data):
+    success = MealService.delete_meal(data.get("meal_id"), current_user.id)
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error("Прием пищи не найден или доступ запрещён")
+
+
+def _handle_update_meal_name(data):
+    success = MealService.update_meal_type(
+        data.get("meal_id"), current_user.id, data.get("meal_name")
+    )
+    if success:
+        return jsonify({"status": "success"})
+    return _json_error("Прием пищи не найден или доступ запрещён")
+
+
+def _handle_create_plan(data):
+    new_plan = MealPlan(user_id=current_user.id, name=data.get("name"))
+    db.session.add(new_plan)
+    db.session.commit()
+    return jsonify({"status": "success"})
+
+
+ACTION_HANDLERS = {
+    "delete_plan": _handle_delete_plan,
+    "update_plan_name": _handle_update_plan_name,
+    "delete_day": _handle_delete_day,
+    "update_product": _handle_update_product,
+    "delete_product": _handle_delete_product,
+    "add_day": _handle_add_day,
+    "add_meal": _handle_add_meal,
+    "add_product": _handle_add_product,
+    "remove_meal": _handle_remove_meal,
+    "update_meal_name": _handle_update_meal_name,
+    "create_plan": _handle_create_plan,
+}
+
+
+def _validate_export_args():
+    """Парсит и валидирует параметры экспорта из query string.
+
+    Returns:
+        tuple[str, int, int, Response|None]:
+            (plan_id, trip_days, people_count, error_response)
+    """
+    plan_id = request.args.get("plan_id")
+    trip_days = request.args.get("trip_days")
+    people_count = request.args.get("people_count")
+
+    if not all([plan_id, trip_days, people_count]):
+        return None, None, None, _json_error(
+            "Необходимо указать plan_id, trip_days и people_count", 400
+        )
+
+    is_valid_trip_days, trip_days_error = validate_positive_integer(
+        trip_days, "Количество дней похода"
+    )
+    if not is_valid_trip_days:
+        return None, None, None, _json_error(trip_days_error, 400)
+
+    is_valid_people_count, people_count_error = validate_positive_integer(
+        people_count, "Количество человек"
+    )
+    if not is_valid_people_count:
+        return None, None, None, _json_error(people_count_error, 400)
+
+    return plan_id, int(trip_days), int(people_count), None
+
+
+def _prepare_headers(
+    layout_days_count: int,
+    meal_types_by_day: list[list[str]],
+    people_count: int,
+) -> list[str]:
+    headers = [
+        "Продукт",
+        f"1 прием пищи на {people_count} чел.",
+    ]
+    for i in range(layout_days_count):
+        day_meal_types = (
+            meal_types_by_day[i] if i < len(meal_types_by_day) else []
+        )
+        meal_type_text = (
+            ", ".join(day_meal_types) if day_meal_types else f"Рацион {i + 1}"
+        )
+        headers.append(f"Рацион {i + 1}\n{meal_type_text}")
+    headers.extend(["Количество повторений", "Общий вес для покупки"])
+    return headers
+
+
+def _apply_table_styles(ws, thin_border):
+    for row in ws.iter_rows(
+        min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column
+    ):
+        for cell in row:
+            cell.border = thin_border
+            align = "left" if cell.column == 1 else "center"
+            cell.alignment = Alignment(horizontal=align, vertical="center")
+
+
+def _auto_fit_columns(ws):
+    column_widths = {}
+    for row in ws.iter_rows(
+        min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column
+    ):
+        for cell in row:
+            value = str(cell.value) if cell.value is not None else ""
+            letter = cell.column_letter
+            column_widths[letter] = max(
+                column_widths.get(letter, 0),
+                len(value) + 2,
+            )
+    for col_letter, width in column_widths.items():
+        ws.column_dimensions[col_letter].width = min(40, width)
+
+
+def _append_total_row(ws, thin_border, layout_days_count: int):
+    if ws.max_row < 2:
+        return
+    start = ws.cell(row=2, column=ws.max_column).coordinate
+    end = ws.cell(row=ws.max_row, column=ws.max_column).coordinate
+    sum_cell = f"=SUM({start}:{end})"
+    empty_cells = [""] * layout_days_count
+    ws.append(["ИТОГО", ""] + empty_cells + ["", sum_cell])
+    last_row = ws.max_row
+    for cell in ws[last_row]:
+        cell.border = thin_border
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+
+def _build_workbook(
+    results: list[dict],
+    summary: dict,
+    meal_types_by_day: list[list[str]],
+    product_meal_usage: dict,
+    trip_days: int,
+    people_count: int,
+):
+    layout_days_count = summary["layout_days_count"]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Расчет"
+
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(
+        start_color="667EEA", end_color="667EEA", fill_type="solid"
+    )
+    thin_border = Border(
+        left=Side(style="thin", color="DDDDDD"),
+        right=Side(style="thin", color="DDDDDD"),
+        top=Side(style="thin", color="DDDDDD"),
+        bottom=Side(style="thin", color="DDDDDD"),
+    )
+
+    headers = _prepare_headers(
+        layout_days_count, meal_types_by_day, people_count
+    )
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(
+            horizontal="center", vertical="center", wrap_text=True
+        )
+        cell.border = thin_border
+
+    for item in results:
+        name = item.get("name", "")
+        weight_per_meal = item.get("weight_per_meal", 0) or 0
+        weight_for_people = weight_per_meal * people_count
+
+        row = [name, round(weight_for_people, 2)]
+
+        total_occurrences = 0
+        usage_map = product_meal_usage.get(name, {})
+
+        for i in range(layout_days_count):
+            usage_count = usage_map.get(i, 0)
+            if i >= trip_days:
+                repetitions = 0
+            else:
+                repetitions = ((trip_days - 1 - i) // layout_days_count) + 1
+            total_usage = usage_count * repetitions
+            total_occurrences += total_usage
+            row.append(total_usage if total_usage > 0 else "")
+
+        total_weight = round(total_occurrences * weight_for_people, 2)
+        row.extend([total_occurrences, total_weight])
+        ws.append(row)
+
+    _apply_table_styles(ws, thin_border)
+    _auto_fit_columns(ws)
+    _append_total_row(ws, thin_border, layout_days_count)
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
+
+
 @views.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
@@ -30,7 +333,9 @@ def register():
             flash("Имя пользователя уже занято")
             return redirect(url_for("views.register"))
 
-        hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+        hashed_password = (
+            bcrypt.generate_password_hash(password).decode("utf-8")
+        )
         user = User(username=username, password=hashed_password)
         db.session.add(user)
         db.session.commit()
@@ -60,138 +365,22 @@ def login():
 @login_required
 def index():
     if request.method == "POST":
-        data = request.get_json()
+        data = request.get_json() or {}
         action = data.get("action")
         selected_plan_id = data.get("plan_id")
 
-        if action == "delete_plan":
-            try:
-                success = MealPlanService.delete_plan(selected_plan_id, current_user.id)
-                if success:
-                    return jsonify(
-                        {"status": "success", "redirect": url_for("views.index")}
-                    )
-                else:
-                    return jsonify(
-                        {
-                            "status": "error",
-                            "message": "Раскладка не найдена или доступ запрещён",
-                        }
-                    )
-            except Exception as e:
-                db.session.rollback()
-                print(f"Ошибка при удалении раскладки: {e}")
-                return jsonify(
-                    {
-                        "status": "error",
-                        "message": f"Ошибка при удалении раскладки: {str(e)}",
-                    }
-                )
-
-        elif action == "update_plan_name":
-            success = MealPlanService.update_plan_name(
-                selected_plan_id, current_user.id, data["new_name"]
-            )
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "Раскладка не найдена или доступ запрещён",
-                }
-            )
-
-        elif action == "delete_day":
-            success = DayService.delete_day(data["day_id"], current_user.id)
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {"status": "error", "message": "День не найден или доступ запрещён"}
-            )
-
-        elif action == "update_product":
-            success, message = ProductService.update_product(
-                data["product_id"], current_user.id, data["name"], data["weight"]
-            )
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {"status": "error", "message": message}
-            )
-
-        elif action == "delete_product":
-            success = ProductService.delete_product(data["product_id"], current_user.id)
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {"status": "error", "message": "Продукт не найден или доступ запрещён"}
-            )
-
-        elif action == "add_day":
-            success = DayService.add_day(
-                selected_plan_id, current_user.id, data["day_number"]
-            )
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "Раскладка не найдена или доступ запрещён",
-                }
-            )
-
-        elif action == "add_meal":
-            success = MealService.add_meal(
-                selected_plan_id, current_user.id, data["day_number"], data["meal_type"]
-            )
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {"status": "error", "message": "День или раскладка не найдены"}
-            )
-
-        elif action == "add_product":
-            success, message = ProductService.add_product(
-                data["meal_id"], current_user.id, data["name"], data["weight"]
-            )
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": message,
-                }
-            )
-
-        elif action == "remove_meal":
-            success = MealService.delete_meal(data["meal_id"], current_user.id)
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "Прием пищи не найден или доступ запрещён",
-                }
-            )
-
-        elif action == "update_meal_name":
-            success = MealService.update_meal_type(
-                data["meal_id"], current_user.id, data["meal_name"]
-            )
-            if success:
-                return jsonify({"status": "success"})
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "Прием пищи не найден или доступ запрещён",
-                }
-            )
-
-        elif action == "create_plan":
-            new_plan = MealPlan(user_id=current_user.id, name=data["name"])
-            db.session.add(new_plan)
-            db.session.commit()
-            return jsonify({"status": "success"})
+        try:
+            handler = ACTION_HANDLERS.get(action)
+            if not handler:
+                return _json_error("Неизвестное действие")
+            return handler(data)
+        except Exception as e:  # noqa: BLE001
+            db.session.rollback()
+            print(f"Ошибка при обработке запроса: {e}")
+            return jsonify({
+                "status": "error",
+                "message": "Внутренняя ошибка сервера",
+            }), 500
 
     meal_plans = MealPlanService.get_user_plans(current_user.id)
     selected_plan_id = request.args.get("plan_id")
@@ -208,7 +397,9 @@ def index():
         meal_plans = [selected_plan]
 
     return render_template(
-        "index.html", meal_plans=meal_plans, selected_plan=selected_plan
+        "index.html",
+        meal_plans=meal_plans,
+        selected_plan=selected_plan,
     )
 
 
@@ -226,7 +417,9 @@ def calculate_products():
             return jsonify(
                 {
                     "status": "error",
-                    "message": "Необходимо указать plan_id, trip_days и people_count",
+                    "message": (
+                        "Необходимо указать plan_id, trip_days и people_count"
+                    ),
                 }
             ), 400
 
@@ -235,13 +428,17 @@ def calculate_products():
             trip_days, "Количество дней похода"
         )
         if not is_valid_trip_days:
-            return jsonify({"status": "error", "message": trip_days_error}), 400
+            return jsonify(
+                {"status": "error", "message": trip_days_error}
+            ), 400
 
         is_valid_people_count, people_count_error = validate_positive_integer(
             people_count, "Количество человек"
         )
         if not is_valid_people_count:
-            return jsonify({"status": "error", "message": people_count_error}), 400
+            return jsonify(
+                {"status": "error", "message": people_count_error}
+            ), 400
 
         # Получаем план питания
         meal_plan = MealPlanService.get_plan_by_id(plan_id, current_user.id)
@@ -249,7 +446,9 @@ def calculate_products():
             return jsonify(
                 {
                     "status": "error",
-                    "message": "Раскладка не найдена или доступ запрещён",
+                    "message": (
+                        "Раскладка не найдена или доступ запрещён"
+                    ),
                 }
             ), 404
 
@@ -260,14 +459,19 @@ def calculate_products():
 
         if not result.get("success"):
             return jsonify(
-                {"status": "error", "message": result.get("error", "Ошибка расчета")}
+                {
+                    "status": "error",
+                    "message": result.get("error", "Ошибка расчета"),
+                }
             ), 400
 
         return jsonify({"status": "success", "data": result})
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Ошибка при расчете продуктов: {e}")
-        return jsonify({"status": "error", "message": "Внутренняя ошибка сервера"}), 500
+        return jsonify(
+            {"status": "error", "message": "Внутренняя ошибка сервера"}
+        ), 500
 
 
 @views.route("/day/<int:day_id>/edit")
@@ -298,23 +502,22 @@ def export_excel():
         people_count = request.args.get("people_count")
 
         if not all([plan_id, trip_days, people_count]):
-            return jsonify({
-                "status": "error",
-                "message": "Необходимо указать plan_id, trip_days и people_count"
-            }), 400
+            return _json_error(
+                "Необходимо указать plan_id, trip_days и people_count", 400
+            )
 
         # Валидация входных данных
         is_valid_trip_days, trip_days_error = validate_positive_integer(
             trip_days, "Количество дней похода"
         )
         if not is_valid_trip_days:
-            return jsonify({"status": "error", "message": trip_days_error}), 400
+            return _json_error(trip_days_error, 400)
 
         is_valid_people_count, people_count_error = validate_positive_integer(
             people_count, "Количество человек"
         )
         if not is_valid_people_count:
-            return jsonify({"status": "error", "message": people_count_error}), 400
+            return _json_error(people_count_error, 400)
 
         trip_days = int(trip_days)
         people_count = int(people_count)
@@ -322,123 +525,30 @@ def export_excel():
         # Получаем план питания и проверяем доступ
         meal_plan = MealPlanService.get_plan_by_id(plan_id, current_user.id)
         if not meal_plan:
-            return jsonify({
-                "status": "error",
-                "message": "Раскладка не найдена или доступ запрещён",
-            }), 404
+            return _json_error("Раскладка не найдена или доступ запрещён", 404)
 
         # Рассчитываем данные
         calc_result = CalculationService.calculate_products_from_layout(
             meal_plan, trip_days, people_count
         )
         if not calc_result.get("success"):
-            return jsonify({
-                "status": "error",
-                "message": calc_result.get("error", "Ошибка расчета"),
-            }), 400
+            return _json_error(
+                calc_result.get("error", "Ошибка расчета"), 400
+            )
 
         results = calc_result["results"]
         summary = calc_result["summary"]
         meal_types_by_day = calc_result["meal_types_by_day"]
         product_meal_usage = calc_result["product_meal_usage"]
 
-        layout_days_count = summary["layout_days_count"]
-
-        # Создаем Excel
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Расчет"
-
-        # Стили
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="667EEA", end_color="667EEA", fill_type="solid")
-        thin_border = Border(left=Side(style="thin", color="DDDDDD"),
-                             right=Side(style="thin", color="DDDDDD"),
-                             top=Side(style="thin", color="DDDDDD"),
-                             bottom=Side(style="thin", color="DDDDDD"))
-
-        # Заголовки
-        headers = [
-            "Продукт",
-            f"1 прием пищи на {people_count} чел.",
-        ]
-
-        # Заголовки для каждого рациона
-        for i in range(layout_days_count):
-            day_meal_types = meal_types_by_day[i] if i < len(meal_types_by_day) else []
-            meal_type_text = ", ".join(day_meal_types) if day_meal_types else f"Рацион {i + 1}"
-            headers.append(f"Рацион {i + 1}\n{meal_type_text}")
-
-        headers.extend([
-            "Количество повторений",
-            "Общий вес для покупки",
-        ])
-
-        ws.append(headers)
-        for cell in ws[1]:
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            cell.border = thin_border
-
-        # Данные
-        for item in results:
-            name = item.get("name", "")
-            weight_per_meal = item.get("weight_per_meal", 0) or 0
-            weight_per_meal_for_people = weight_per_meal * people_count
-
-            row = [name, round(weight_per_meal_for_people, 2)]
-
-            total_occurrences = 0
-            usage_map = product_meal_usage.get(name, {})
-
-            for i in range(layout_days_count):
-                usage_count = usage_map.get(i, 0)
-                # Сколько раз используется рацион с индексом i в пределах trip_days
-                if i >= trip_days:
-                    repetitions_for_ration = 0
-                else:
-                    repetitions_for_ration = ((trip_days - 1 - i) // layout_days_count) + 1
-                total_usage_for_ration = usage_count * repetitions_for_ration
-                total_occurrences += total_usage_for_ration
-                row.append(total_usage_for_ration if total_usage_for_ration > 0 else "")
-
-            total_weight = round(total_occurrences * weight_per_meal_for_people, 2)
-            row.extend([total_occurrences, total_weight])
-
-            ws.append(row)
-
-        # Применяем границы и выравнивание для всех данных
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
-            for cell in row:
-                cell.border = thin_border
-                align = "left" if cell.column == 1 else "center"
-                cell.alignment = Alignment(horizontal=align, vertical="center")
-
-        # Устанавливаем ширину столбцов
-        column_widths = {}
-        for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
-            for cell in row:
-                value = str(cell.value) if cell.value is not None else ""
-                column_widths[cell.column_letter] = max(column_widths.get(cell.column_letter, 0), len(value) + 2)
-
-        for col_letter, width in column_widths.items():
-            ws.column_dimensions[col_letter].width = min(40, width)
-
-        # Итоговая строка (сумма общего веса)
-        if ws.max_row >= 2:
-            sum_cell = f"=SUM({ws.cell(row=2, column=ws.max_column).coordinate}:{ws.cell(row=ws.max_row, column=ws.max_column).coordinate})"
-            ws.append(["ИТОГО", "", *([""] * (layout_days_count)), "", sum_cell])
-            last_row = ws.max_row
-            for cell in ws[last_row]:
-                cell.border = thin_border
-                cell.font = Font(bold=True)
-                cell.alignment = Alignment(horizontal="center", vertical="center")
-
-        # Отдаем файл
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
+        output = _build_workbook(
+            results,
+            summary,
+            meal_types_by_day,
+            product_meal_usage,
+            trip_days,
+            people_count,
+        )
 
         safe_name = meal_plan.name.replace("/", "-").replace("\\", "-")
         filename = f"{safe_name} - расчет.xlsx"
@@ -447,9 +557,12 @@ def export_excel():
             output,
             as_attachment=True,
             download_name=filename,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            mimetype=(
+                "application/"
+                "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
         )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Ошибка при экспорте Excel: {e}")
-        return jsonify({"status": "error", "message": "Внутренняя ошибка сервера"}), 500
+        return _json_error("Внутренняя ошибка сервера", 500)

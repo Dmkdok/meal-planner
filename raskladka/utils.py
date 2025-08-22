@@ -2,22 +2,6 @@
 from typing import Union
 
 
-def format_weight(weight_grams: Union[int, float]) -> str:
-    """
-    Форматирует вес в граммах в читаемый вид
-
-    Args:
-        weight_grams: Вес в граммах
-
-    Returns:
-        Отформатированная строка веса
-    """
-    if weight_grams >= 1000:
-        return f"{(weight_grams / 1000):.1f} кг"
-    else:
-        return f"{int(weight_grams)} г"
-
-
 def validate_positive_integer(
     value: Union[str, int], field_name: str = "Значение"
 ) -> tuple[bool, str]:
