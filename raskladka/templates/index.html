@@ -1175,29 +1175,35 @@
 
         /* Сообщения */
         .success-message {
-            position: fixed;
-            top: 15px;
-            right: 15px;
             background: #28a745;
             color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            z-index: 1000;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
             animation: slideIn 0.3s ease;
+            max-width: 500px;
+            min-width: 300px;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 14px;
+            border-left: 4px solid #1e7e34;
+            margin-bottom: 10px;
         }
 
         .error-message {
-            position: fixed;
-            top: 15px;
-            right: 15px;
             background: #dc3545;
             color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            z-index: 1000;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
             animation: slideIn 0.3s ease;
+            max-width: 500px;
+            min-width: 300px;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 14px;
+            border-left: 4px solid #c82333;
+            margin-bottom: 10px;
         }
 
         @keyframes slideIn {
@@ -1237,6 +1243,19 @@
         @media (max-width: 768px) {
             body {
                 padding: 0;
+            }
+
+            #message-container {
+                right: 15px;
+                left: 15px;
+            }
+
+            .error-message,
+            .success-message {
+                max-width: calc(100vw - 30px);
+                min-width: auto;
+                font-size: 13px;
+                padding: 14px 20px;
             }
 
             .day-container {
@@ -1466,9 +1485,9 @@
             {% for day in selected_plan.days %}
             <div class="day-container" data-day="{{ day.day_number }}">
                 <div class="day-header">
-                    <h2>День {{ day.day_number }}</h2>
+                    <h2>Рацион {{ day.day_number }}</h2>
                     <a href="{{ url_for('views.edit_day', day_id=day.id) }}" class="edit-day-btn">
-                        Редактировать день
+                        Редактировать
                     </a>
                 </div>
 
@@ -1500,7 +1519,7 @@
             </div>
 
             <button class="add-day-btn" onclick="addDay()">
-                + Добавить новый день
+                + Добавить новый рацион
             </button>
         </div>
     </div>
@@ -1528,7 +1547,7 @@
                             <div class="layout-info">
                                 <div class="layout-summary">
                                     <h4>📊 {{ selected_plan.name }}</h4>
-                                    <p><strong>Дней в раскладке:</strong> {{ selected_plan.days|length }}</p>
+                                    <p><strong>Рационов в раскладке:</strong> {{ selected_plan.days|length }}</p>
                                     <p><strong>Всего приемов пищи:</strong>
                                         {% set total_meals = 0 %}
                                         {% for day in selected_plan.days %}
@@ -1550,10 +1569,10 @@
                                 </div>
 
                                 <div class="layout-details">
-                                    <h4>📅 Детали по дням:</h4>
+                                    <h4>📅 Детали по рационам:</h4>
                                     {% for day in selected_plan.days %}
                                     <div class="day-summary">
-                                        <h5>День {{ day.day_number }}</h5>
+                                        <h5>Рацион {{ day.day_number }}</h5>
                                         <div class="meals-summary">
                                             {% for meal in day.meals %}
                                             <div class="meal-summary">
@@ -1589,9 +1608,10 @@
                                     <h4>ℹ️ Как работает расчет:</h4>
                                     <ul>
                                         <li>Система берет продукты из вашей раскладки</li>
-                                        <li>Умножает количество на число повторений дней</li>
+                                        <li>Показывает использование в каждом рационе (дне раскладки)</li>
+                                        <li>Суммирует количество повторений за весь поход</li>
                                         <li>Учитывает количество человек</li>
-                                        <li>Показывает общий вес для покупки</li>
+                                        <li>Общий вес = Количество повторений × Вес за 1 прием на всех человек</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1691,7 +1711,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
                     const result = data.data;
                     displayLayoutResults(
@@ -1733,16 +1753,15 @@
                                 <th>1 прием пищи на ${peopleCount} чел.</th>
             `;
 
-            // Добавляем заголовки для каждого дня похода (рациона)
-            for (let i = 0; i < tripDays; i++) {
-                const dayInLayout = i % layoutDaysCount; // Какой день из раскладки использовать
-                const dayMealTypes = mealTypesByDay[dayInLayout] || [];
-                const mealType = dayMealTypes.length > 0 ? dayMealTypes.join(', ') : `День ${dayInLayout + 1}`;
-                mainHtml += `<th>Рац ${i + 1}<br><small>${mealType}</small></th>`;
+            // Добавляем заголовки для каждого рациона раскладки
+            for (let i = 0; i < layoutDaysCount; i++) {
+                const dayMealTypes = mealTypesByDay[i] || [];
+                const mealType = dayMealTypes.length > 0 ? dayMealTypes.join(', ') : `Рацион ${i + 1}`;
+                mainHtml += `<th>Рацион ${i + 1}<br><small>${mealType}</small></th>`;
             }
 
             mainHtml += `
-                                <th>Количество повторений</th>
+                                <th>Количество повторений<br><small>за весь поход</small></th>
                                 <th>Общий вес для покупки</th>
                             </tr>
                         </thead>
@@ -1750,10 +1769,6 @@
             `;
 
                         results.forEach(result => {
-                const weightText = (result.weight || 0) >= 1000 ?
-                    `${((result.weight || 0) / 1000).toFixed(1)} кг` :
-                    `${result.weight || 0} г`;
-
                 // Вес за один прием пищи × количество человек
                 const weightPerMealForPeople = (result.weight_per_meal || 0) * peopleCount;
                 const weightPerMealText = weightPerMealForPeople >= 1000 ?
@@ -1769,16 +1784,28 @@
                         <td class="weight-per-person-cell">${weightPerMealText}</td>
                 `;
 
-                // Добавляем столбцы для каждого дня похода
-                for (let i = 0; i < tripDays; i++) {
-                    const dayInLayout = i % layoutDaysCount; // Какой день из раскладки использовать
-                    const usageCount = mealUsage[dayInLayout] || 0;
-                    const cellClass = usageCount > 0 ? 'meal-usage-cell' : 'meal-usage-empty-cell';
-                    mainHtml += `<td class="${cellClass}">${usageCount > 0 ? usageCount : ''}</td>`;
+                                // Добавляем столбцы для каждого рациона раскладки
+                let totalOccurrences = 0;
+                for (let i = 0; i < layoutDaysCount; i++) {
+                    const usageCount = mealUsage[i] || 0;
+                    // Рассчитываем общее количество повторений за весь поход
+                    // Рацион i будет использоваться в дни: i, i+layoutDaysCount, i+2*layoutDaysCount, ...
+                    const repetitionsForThisRation = Math.floor((tripDays - i - 1) / layoutDaysCount) + 1;
+                    const totalUsageForThisRation = usageCount * repetitionsForThisRation;
+                    totalOccurrences += totalUsageForThisRation;
+
+                    const cellClass = totalUsageForThisRation > 0 ? 'meal-usage-cell' : 'meal-usage-empty-cell';
+                    mainHtml += `<td class="${cellClass}">${totalUsageForThisRation > 0 ? totalUsageForThisRation : ''}</td>`;
                 }
 
+                // Рассчитываем общий вес: количество повторений × вес за один прием пищи на всех человек
+                const totalWeight = totalOccurrences * weightPerMealForPeople;
+                const weightText = totalWeight >= 1000 ?
+                    `${(totalWeight / 1000).toFixed(1)} кг` :
+                    `${Math.round(totalWeight)} г`;
+
                 mainHtml += `
-                        <td class="occurrences-cell">${result.occurrences || 0}</td>
+                        <td class="occurrences-cell">${totalOccurrences}</td>
                         <td class="weight-cell">${weightText}</td>
                     </tr>
                 `;
@@ -1791,10 +1818,26 @@
             `;
 
             // Добавляем статистику
-            const totalWeight = results.reduce((sum, result) => sum + (result.weight || 0), 0);
+            // Пересчитываем общий вес на основе новых данных
+            let totalWeight = 0;
+            results.forEach(result => {
+                const weightPerMealForPeople = (result.weight_per_meal || 0) * peopleCount;
+                const mealUsage = productMealUsage[result.name] || {};
+                let totalOccurrences = 0;
+                for (let i = 0; i < layoutDaysCount; i++) {
+                    const usageCount = mealUsage[i] || 0;
+                    // Рассчитываем общее количество повторений за весь поход
+                    // Рацион i будет использоваться в дни: i, i+layoutDaysCount, i+2*layoutDaysCount, ...
+                    const repetitionsForThisRation = Math.floor((tripDays - i - 1) / layoutDaysCount) + 1;
+                    const totalUsageForThisRation = usageCount * repetitionsForThisRation;
+                    totalOccurrences += totalUsageForThisRation;
+                }
+                totalWeight += totalOccurrences * weightPerMealForPeople;
+            });
+
             const totalWeightText = totalWeight >= 1000 ?
                 `${(totalWeight / 1000).toFixed(1)} кг` :
-                `${totalWeight} г`;
+                `${Math.round(totalWeight)} г`;
 
             mainHtml += `
                 <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #28a745;">
@@ -1810,7 +1853,7 @@
                     <h5 style="margin: 0 0 10px 0; color: #1976d2;">📊 Информация о расчете</h5>
                     <p style="margin: 5px 0; color: #1976d2;"><strong>Длительность похода:</strong> ${tripDays} дней</p>
                     <p style="margin: 5px 0; color: #1976d2;"><strong>Количество человек:</strong> ${peopleCount}</p>
-                    <p style="margin: 5px 0; color: #1976d2;"><strong>Дней в раскладке:</strong> ${layoutDaysCount}</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Рационов в раскладке:</strong> ${layoutDaysCount}</p>
                     <p style="margin: 5px 0; color: #1976d2;"><strong>Повторений раскладки:</strong> ${layoutRepetitions}</p>
                     <p style="margin: 5px 0; color: #1976d2;"><strong>Используется дней:</strong> ${actualDaysUsed}</p>
                 </div>
@@ -1826,16 +1869,68 @@
             mainResultsSection.scrollIntoView({ behavior: 'smooth' });
         }
 
-        // Утилиты для показа сообщений
+                // Утилиты для показа сообщений
         function showMessage(message, type = 'success') {
+            // Создаем или получаем контейнер для сообщений
+            let messageContainer = document.getElementById('message-container');
+            if (!messageContainer) {
+                messageContainer = document.createElement('div');
+                messageContainer.id = 'message-container';
+                messageContainer.style.cssText = `
+                    position: fixed;
+                    top: 15px;
+                    right: 15px;
+                    z-index: 9999;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(messageContainer);
+            }
+
             const messageDiv = document.createElement('div');
             messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
-            messageDiv.textContent = message;
-            document.body.appendChild(messageDiv);
+            messageDiv.style.pointerEvents = 'auto';
 
+            // Создаем контейнер для текста и кнопки закрытия
+            const textSpan = document.createElement('span');
+            textSpan.textContent = message;
+            textSpan.style.flex = '1';
+
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '&times;';
+            closeButton.style.cssText = `
+                background: none;
+                border: none;
+                color: white;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+                padding: 0;
+                margin-left: 12px;
+                opacity: 0.8;
+                transition: opacity 0.2s;
+            `;
+            closeButton.onmouseover = () => closeButton.style.opacity = '1';
+            closeButton.onmouseout = () => closeButton.style.opacity = '0.8';
+            closeButton.onclick = () => messageDiv.remove();
+
+            messageDiv.style.display = 'flex';
+            messageDiv.style.alignItems = 'flex-start';
+            messageDiv.style.justifyContent = 'space-between';
+            messageDiv.style.position = 'relative';
+            messageDiv.style.top = '0';
+            messageDiv.style.right = '0';
+
+            messageDiv.appendChild(textSpan);
+            messageDiv.appendChild(closeButton);
+            messageContainer.appendChild(messageDiv);
+
+            // Автоматическое удаление через 5 секунд для ошибок, 3 секунды для успеха
+            const timeout = type === 'error' ? 5000 : 3000;
             setTimeout(() => {
-                messageDiv.remove();
-            }, 3000);
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, timeout);
         }
 
         // Выбор плана
@@ -1875,7 +1970,7 @@
                             title.dataset.originalName = newName;
                             showMessage('Название раскладки обновлено');
                         } else {
-                            showMessage('Не удалось обновить название раскладки', 'error');
+                            showMessage(data.message || 'Не удалось обновить название раскладки', 'error');
                         }
                     } catch (error) {
                         console.error('Ошибка при обновлении названия:', error);
@@ -1908,7 +2003,7 @@
                     if (data.status === 'success') {
                         window.location.href = data.redirect;
                     } else {
-                        showMessage('Не удалось удалить раскладку', 'error');
+                        showMessage(data.message || 'Не удалось удалить раскладку', 'error');
                     }
                 } catch (error) {
                     console.error('Ошибка при удалении раскладки:', error);
@@ -1935,7 +2030,7 @@
                         showMessage('Раскладка создана');
                         location.reload();
                     } else {
-                        showMessage('Не удалось создать раскладку', 'error');
+                        showMessage(data.message || 'Не удалось создать раскладку', 'error');
                     }
                 } catch (error) {
                     console.error('Ошибка при создании раскладки:', error);
@@ -2007,7 +2102,7 @@
 
                     showMessage('Продукт обновлен');
                 } else {
-                    showMessage('Не удалось обновить продукт', 'error');
+                    showMessage(data.message || 'Не удалось обновить продукт', 'error');
                 }
             } catch (error) {
                 console.error('Ошибка при обновлении продукта:', error);
@@ -2050,7 +2145,7 @@
                         showMessage('Прием пищи удален');
                         location.reload();
                     } else {
-                        showMessage('Не удалось удалить прием пищи', 'error');
+                        showMessage(data.message || 'Не удалось удалить прием пищи', 'error');
                     }
                 } catch (error) {
                     console.error('Ошибка при удалении приема пищи:', error);
@@ -2073,7 +2168,7 @@
                         showMessage('Продукт удален');
                         location.reload();
                     } else {
-                        showMessage('Не удалось удалить продукт', 'error');
+                        showMessage(data.message || 'Не удалось удалить продукт', 'error');
                     }
                 } catch (error) {
                     console.error('Ошибка при удалении продукта:', error);
@@ -2101,9 +2196,9 @@
                 if (data.status === 'success') {
                     showMessage('День добавлен');
                     location.reload();
-                } else {
-                    showMessage('Не удалось добавить день', 'error');
-                }
+                                    } else {
+                        showMessage(data.message || 'Не удалось добавить день', 'error');
+                    }
             } catch (error) {
                 console.error('Ошибка при добавлении дня:', error);
                 showMessage('Произошла ошибка при добавлении дня', 'error');
@@ -2130,7 +2225,7 @@
                         showMessage('Прием пищи добавлен');
                         location.reload();
                     } else {
-                        showMessage('Не удалось добавить прием пищи', 'error');
+                        showMessage(data.message || 'Не удалось добавить прием пищи', 'error');
                     }
                 } catch (error) {
                     console.error('Ошибка при добавлении приема пищи:', error);
@@ -2164,7 +2259,7 @@
                         showMessage('Продукт добавлен');
                         location.reload();
                     } else {
-                        showMessage('Не удалось добавить продукт', 'error');
+                        showMessage(data.message || 'Не удалось добавить продукт', 'error');
                     }
                 } catch (error) {
                     console.error('Ошибка при добавлении продукта:', error);

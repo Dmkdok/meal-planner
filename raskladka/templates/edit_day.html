@@ -80,10 +80,10 @@
         }
 
         .meal-section {
-            margin: 15px;
-            padding: 12px;
+            margin: 12px;
+            padding: 10px;
             border: 2px solid #e9ecef;
-            border-radius: 12px;
+            border-radius: 10px;
             background: #fafbfc;
         }
 
@@ -120,16 +120,17 @@
         }
 
         .meal-title-input {
-            font-size: 1.3em;
+            font-size: 1.2em;
             font-weight: 600;
             color: #495057;
             background: #fff3cd;
             border: 2px solid #ffc107;
-            border-radius: 8px;
-            padding: 8px 12px;
+            border-radius: 6px;
+            padding: 6px 10px;
             width: 300px;
             outline: none;
             transition: all 0.3s ease;
+            height: 36px;
         }
 
         .meal-title-input:focus {
@@ -161,11 +162,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 10px;
-            margin: 4px 0;
+            padding: 4px 8px;
+            margin: 3px 0;
             background: #f8f9fa;
             border: 2px solid #e9ecef;
-            border-radius: 10px;
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
 
@@ -187,11 +188,11 @@
         }
 
         .product-display {
-            font-size: 1.05em;
+            font-size: 1em;
             color: #495057;
             cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 4px 8px;
+            border-radius: 5px;
             transition: all 0.3s ease;
             border: 2px solid transparent;
         }
@@ -210,6 +211,7 @@
             gap: 8px;
             align-items: center;
             flex: 1;
+            flex-wrap: wrap;
         }
 
         .product-edit-form.showing {
@@ -217,12 +219,13 @@
         }
 
         .edit-input {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 0.95em;
+            border-radius: 6px;
+            font-size: 0.9em;
             transition: all 0.3s ease;
             outline: none;
+            height: 32px;
         }
 
         .edit-input:focus {
@@ -245,13 +248,14 @@
         }
 
         .edit-product-btn, .delete-product-btn, .save-product-btn, .cancel-edit-btn {
-            padding: 6px 14px;
+            padding: 4px 10px;
             border: none;
-            border-radius: 6px;
+            border-radius: 5px;
             cursor: pointer;
             font-weight: 500;
             transition: all 0.3s ease;
-            font-size: 0.85em;
+            font-size: 0.8em;
+            height: 28px;
         }
 
         .edit-product-btn {
@@ -295,11 +299,11 @@
         }
 
         .add-product-form {
-            margin-top: 10px;
-            padding: 10px;
+            margin-top: 8px;
+            padding: 8px;
             background: white;
             border: 2px dashed #dee2e6;
-            border-radius: 10px;
+            border-radius: 8px;
             text-align: center;
         }
 
@@ -312,12 +316,13 @@
         }
 
         .product-name, .product-weight {
-            padding: 12px 16px;
+            padding: 8px 12px;
             border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 1em;
+            border-radius: 6px;
+            font-size: 0.95em;
             transition: all 0.3s ease;
             outline: none;
+            height: 36px;
         }
 
         .product-name:focus, .product-weight:focus {
@@ -370,16 +375,19 @@
         }
 
         .success-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
             background: #28a745;
             color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            z-index: 1000;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
             animation: slideIn 0.3s ease;
+            max-width: 500px;
+            min-width: 300px;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 14px;
+            border-left: 4px solid #1e7e34;
+            margin-bottom: 10px;
         }
 
         @keyframes slideIn {
@@ -394,19 +402,79 @@
         }
 
         .error-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
             background: #dc3545;
             color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            z-index: 1000;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
             animation: slideIn 0.3s ease;
+            max-width: 500px;
+            min-width: 300px;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 14px;
+            border-left: 4px solid #c82333;
+            margin-bottom: 10px;
+        }
+
+        .field-error {
+            color: #dc3545;
+            font-size: 0.85em;
+            margin-top: 5px;
+            padding: 8px 12px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            display: none;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .field-error.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
         }
 
         @media (max-width: 768px) {
+            #message-container {
+                right: 15px;
+                left: 15px;
+            }
+
+            .error-message,
+            .success-message {
+                max-width: calc(100vw - 30px);
+                min-width: auto;
+                font-size: 13px;
+                padding: 14px 20px;
+            }
+
             .day-header h1 {
                 font-size: 2em;
             }
@@ -456,7 +524,7 @@
             <h1>День {{ day.day_number }} - {{ meal_plan.name }}</h1>
             <div class="header-actions">
                 <a href="{{ url_for('views.index', plan_id=meal_plan.id) }}" class="back-btn">← Назад к раскладке</a>
-                <button class="delete-day-btn" onclick="deleteDay({{ day.id }})">Удалить день</button>
+                <button class="delete-day-btn" onclick="deleteDay({{ day.id }})">Удалить рацион</button>
             </div>
         </div>
 
@@ -477,8 +545,14 @@
                             {{ product.name }} - {{ product.weight }}г
                         </div>
                         <div class="product-edit-form">
-                            <input type="text" class="edit-input" data-type="name" value="{{ product.name }}" placeholder="Название продукта">
-                            <input type="number" class="edit-input" data-type="weight" value="{{ product.weight }}" placeholder="Вес (г)" min="1">
+                            <div class="input-group">
+                                <input type="text" class="edit-input" data-type="name" value="{{ product.name }}" placeholder="Название продукта">
+                                <div class="field-error" id="edit-name-error-{{ product.id }}"></div>
+                            </div>
+                            <div class="input-group">
+                                <input type="number" class="edit-input" data-type="weight" value="{{ product.weight }}" placeholder="Вес (г)" min="1">
+                                <div class="field-error" id="edit-weight-error-{{ product.id }}"></div>
+                            </div>
                             <button class="save-product-btn" onclick="saveProductEdit({{ product.id }})">✓</button>
                             <button class="cancel-edit-btn" onclick="cancelProductEdit({{ product.id }})">✗</button>
                         </div>
@@ -491,8 +565,14 @@
 
                 <div class="add-product-form">
                     <div class="form-row">
-                        <input type="text" class="product-name" placeholder="Название продукта">
-                        <input type="number" class="product-weight" placeholder="Вес (г)" min="1">
+                        <div class="input-group">
+                            <input type="text" class="product-name" placeholder="Название продукта">
+                            <div class="field-error" id="name-error-{{ meal.id }}"></div>
+                        </div>
+                        <div class="input-group">
+                            <input type="number" class="product-weight" placeholder="Вес (г)" min="1">
+                            <div class="field-error" id="weight-error-{{ meal.id }}"></div>
+                        </div>
                         <button class="add-product-btn" onclick="addProduct({{ meal.id }})">Добавить продукт</button>
                     </div>
                 </div>
@@ -506,14 +586,100 @@
     <script>
         // Утилиты для показа сообщений
         function showMessage(message, type = 'success') {
+            // Создаем или получаем контейнер для сообщений
+            let messageContainer = document.getElementById('message-container');
+            if (!messageContainer) {
+                messageContainer = document.createElement('div');
+                messageContainer.id = 'message-container';
+                messageContainer.style.cssText = `
+                    position: fixed;
+                    top: 15px;
+                    right: 15px;
+                    z-index: 9999;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(messageContainer);
+            }
+
             const messageDiv = document.createElement('div');
             messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
-            messageDiv.textContent = message;
-            document.body.appendChild(messageDiv);
+            messageDiv.style.pointerEvents = 'auto';
 
+            // Создаем контейнер для текста и кнопки закрытия
+            const textSpan = document.createElement('span');
+            textSpan.textContent = message;
+            textSpan.style.flex = '1';
+
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '&times;';
+            closeButton.style.cssText = `
+                background: none;
+                border: none;
+                color: white;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+                padding: 0;
+                margin-left: 12px;
+                opacity: 0.8;
+                transition: opacity 0.2s;
+            `;
+            closeButton.onmouseover = () => closeButton.style.opacity = '1';
+            closeButton.onmouseout = () => closeButton.style.opacity = '0.8';
+            closeButton.onclick = () => messageDiv.remove();
+
+            messageDiv.style.display = 'flex';
+            messageDiv.style.alignItems = 'flex-start';
+            messageDiv.style.justifyContent = 'space-between';
+            messageDiv.style.position = 'relative';
+            messageDiv.style.top = '0';
+            messageDiv.style.right = '0';
+
+            messageDiv.appendChild(textSpan);
+            messageDiv.appendChild(closeButton);
+            messageContainer.appendChild(messageDiv);
+
+            // Автоматическое удаление через 5 секунд для ошибок, 3 секунды для успеха
+            const timeout = type === 'error' ? 5000 : 3000;
             setTimeout(() => {
-                messageDiv.remove();
-            }, 3000);
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, timeout);
+        }
+
+        // Показать ошибку поля
+        function showFieldError(errorId, message) {
+            const errorElement = document.getElementById(errorId);
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.classList.add('show');
+
+                // Автоматически скрыть через 8 секунд
+                setTimeout(() => {
+                    errorElement.classList.remove('show');
+                }, 8000);
+            }
+        }
+
+        // Скрыть ошибку поля
+        function hideFieldError(errorId) {
+            const errorElement = document.getElementById(errorId);
+            if (errorElement) {
+                errorElement.classList.remove('show');
+            }
+        }
+
+        // Очистить все ошибки для приема пищи
+        function clearMealErrors(mealId) {
+            hideFieldError(`name-error-${mealId}`);
+            hideFieldError(`weight-error-${mealId}`);
+        }
+
+        // Очистить все ошибки для редактирования продукта
+        function clearEditErrors(productId) {
+            hideFieldError(`edit-name-error-${productId}`);
+            hideFieldError(`edit-weight-error-${productId}`);
         }
 
         // Редактирование названия приема пищи
@@ -583,6 +749,9 @@
                 return;
             }
 
+            // Очищаем ошибки
+            clearEditErrors(productId);
+
             // Скрываем отображение и показываем форму редактирования
             productDisplay.style.display = 'none';
             productEditForm.style.display = 'flex';
@@ -616,24 +785,39 @@
             const name = nameInput.value.trim();
             const weight = weightInput.value.trim();
 
-            if (!name || !weight) {
-                showMessage('Пожалуйста, заполните все поля', 'error');
+            // Очищаем предыдущие ошибки
+            clearEditErrors(productId);
+
+            if (!name) {
+                showFieldError(`edit-name-error-${productId}`, 'Введите название продукта');
+                return;
+            }
+
+            if (!weight) {
+                showFieldError(`edit-weight-error-${productId}`, 'Введите вес продукта');
                 return;
             }
 
             try {
+                const requestData = {
+                    action: 'update_product',
+                    product_id: productId,
+                    name: name,
+                    weight: parseInt(weight)
+                };
+
+                console.log('Обновление продукта:', requestData);
+
                 const response = await fetch('/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'update_product',
-                        product_id: productId,
-                        name: name,
-                        weight: weight
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
+                console.log('Получен ответ:', response.status);
+
                 const data = await response.json();
+                console.log('Данные ответа:', data);
                 if (data.status === 'success') {
                     // Обновляем отображение и данные
                     productDisplay.textContent = `${name} - ${weight}г`;
@@ -646,7 +830,8 @@
 
                     showMessage('Продукт обновлен');
                 } else {
-                    showMessage('Не удалось обновить продукт', 'error');
+                    // Показываем ошибку как глобальное сообщение
+                    showMessage(data.message || 'Не удалось обновить продукт', 'error');
                 }
             } catch (error) {
                 console.error('Ошибка при обновлении продукта:', error);
@@ -679,6 +864,9 @@
             nameInput.value = originalName;
             weightInput.value = originalWeight;
 
+            // Очищаем ошибки
+            clearEditErrors(productId);
+
             // Возвращаем к обычному виду
             productDisplay.style.display = 'inline';
             productEditForm.style.display = 'none';
@@ -688,7 +876,7 @@
 
         // Удаление дня
         async function deleteDay(dayId) {
-            if (confirm('Вы уверены, что хотите удалить день?')) {
+            if (confirm('Вы уверены, что хотите удалить рацион?')) {
                 try {
                     const response = await fetch('/', {
                         method: 'POST',
@@ -702,7 +890,7 @@
                             window.location.href = "{{ url_for('views.index', plan_id=meal_plan.id) }}";
                         }, 1000);
                     } else {
-                        showMessage('Не удалось удалить день', 'error');
+                        showMessage('Не удалось удалить рацион', 'error');
                     }
                 } catch (error) {
                     console.error('Ошибка при запросе:', error);
@@ -794,31 +982,55 @@
             const name = productNameInput.value.trim();
             const weight = productWeightInput.value.trim();
 
-            if (name && weight) {
-                try {
-                    const response = await fetch('/', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'add_product',
-                            meal_id: mealId,
-                            name: name,
-                            weight: weight
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.status === 'success') {
-                        showMessage('Продукт добавлен');
-                        location.reload();
-                    } else {
-                        showMessage('Не удалось добавить продукт', 'error');
-                    }
-                } catch (error) {
-                    console.error('Ошибка при добавлении продукта:', error);
-                    showMessage('Произошла ошибка при добавлении продукта', 'error');
+            // Очищаем предыдущие ошибки
+            clearMealErrors(mealId);
+
+            console.log('Добавление продукта:', { mealId, name, weight });
+
+            if (!name) {
+                showFieldError(`name-error-${mealId}`, 'Введите название продукта');
+                return;
+            }
+
+            if (!weight) {
+                showFieldError(`weight-error-${mealId}`, 'Введите вес продукта');
+                return;
+            }
+
+            try {
+                const requestData = {
+                    action: 'add_product',
+                    meal_id: mealId,
+                    name: name,
+                    weight: parseInt(weight)
+                };
+
+                console.log('Отправляем данные:', requestData);
+
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('Получен ответ:', response.status);
+
+                const data = await response.json();
+                console.log('Данные ответа:', data);
+
+                if (data.status === 'success') {
+                    showMessage('Продукт добавлен');
+                    // Очищаем поля ввода
+                    productNameInput.value = '';
+                    productWeightInput.value = '';
+                    location.reload();
+                } else {
+                    // Показываем ошибку как глобальное сообщение
+                    showMessage(data.message || 'Не удалось добавить продукт', 'error');
                 }
-            } else {
-                showMessage('Пожалуйста, заполните все поля', 'error');
+            } catch (error) {
+                console.error('Ошибка при добавлении продукта:', error);
+                showMessage('Произошла ошибка при добавлении продукта', 'error');
             }
         }
 
@@ -835,6 +1047,13 @@
                         weightInput.focus();
                     }
                 });
+
+                // Очищаем ошибку при вводе
+                input.addEventListener('input', function() {
+                    const mealSection = input.closest('.meal-section');
+                    const mealId = mealSection.dataset.mealId;
+                    hideFieldError(`name-error-${mealId}`);
+                });
             });
 
             productWeightInputs.forEach(input => {
@@ -844,6 +1063,33 @@
                         const addButton = mealSection.querySelector('.add-product-btn');
                         addButton.click();
                     }
+                });
+
+                // Очищаем ошибку при вводе
+                input.addEventListener('input', function() {
+                    const mealSection = input.closest('.meal-section');
+                    const mealId = mealSection.dataset.mealId;
+                    hideFieldError(`weight-error-${mealId}`);
+                });
+            });
+
+            // Обработчики для полей редактирования
+            const editNameInputs = document.querySelectorAll('.edit-input[data-type="name"]');
+            const editWeightInputs = document.querySelectorAll('.edit-input[data-type="weight"]');
+
+            editNameInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const productItem = input.closest('.product-item');
+                    const productId = productItem.dataset.productId;
+                    hideFieldError(`edit-name-error-${productId}`);
+                });
+            });
+
+            editWeightInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const productItem = input.closest('.product-item');
+                    const productId = productItem.dataset.productId;
+                    hideFieldError(`edit-weight-error-${productId}`);
                 });
             });
         });

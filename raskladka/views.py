@@ -107,13 +107,13 @@ def index():
             )
 
         elif action == "update_product":
-            success = ProductService.update_product(
+            success, message = ProductService.update_product(
                 data["product_id"], current_user.id, data["name"], data["weight"]
             )
             if success:
                 return jsonify({"status": "success"})
             return jsonify(
-                {"status": "error", "message": "Продукт не найден или доступ запрещён"}
+                {"status": "error", "message": message}
             )
 
         elif action == "delete_product":
@@ -148,7 +148,7 @@ def index():
             )
 
         elif action == "add_product":
-            success = ProductService.add_product(
+            success, message = ProductService.add_product(
                 data["meal_id"], current_user.id, data["name"], data["weight"]
             )
             if success:
@@ -156,7 +156,7 @@ def index():
             return jsonify(
                 {
                     "status": "error",
-                    "message": "Прием пищи не найден или доступ запрещён",
+                    "message": message,
                 }
             )
 

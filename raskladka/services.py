@@ -278,9 +278,58 @@ class ProductService:
     """Сервис для работы с продуктами"""
 
     @staticmethod
-    def add_product(meal_id: int, user_id: int, name: str, weight: int) -> bool:
+    def validate_product_name_weight(user_id: int, name: str, weight: int, exclude_product_id: int = None) -> tuple[bool, str]:
+        """
+        Валидирует, что продукты с одинаковым именем имеют одинаковый вес
+
+        Args:
+            user_id: ID пользователя
+            name: Название продукта
+            weight: Вес продукта
+            exclude_product_id: ID продукта для исключения из проверки (при обновлении)
+
+        Returns:
+            tuple[bool, str]: (is_valid, error_message)
+        """
+        # Получаем все продукты пользователя с таким же именем
+        query = (
+            Product.query.join(Meal)
+            .join(Day)
+            .join(MealPlan)
+            .filter(MealPlan.user_id == user_id, Product.name == name)
+        )
+
+        if exclude_product_id:
+            query = query.filter(Product.id != exclude_product_id)
+
+        existing_products = query.all()
+
+        if existing_products:
+            # Проверяем, что все продукты с таким именем имеют одинаковый вес
+            for product in existing_products:
+                if product.weight != weight:
+                    error_msg = (
+                        f"Продукт '{name}' уже существует с весом "
+                        f"{product.weight}г. Для добавления продукта с другим "
+                        f"весом используйте другое название (например, "
+                        f"'{name} утро' или '{name} вечер')."
+                    )
+                    return False, error_msg
+
+        # Если все продукты с таким именем имеют одинаковый вес (или их нет), то разрешаем
+        return True, ""
+
+    @staticmethod
+    def add_product(meal_id: int, user_id: int, name: str, weight: int) -> tuple[bool, str]:
         """Добавляет новый продукт"""
         from raskladka import db
+
+        # Валидируем имя и вес продукта
+        is_valid, error_message = ProductService.validate_product_name_weight(
+            user_id, name, weight
+        )
+        if not is_valid:
+            return False, error_message
 
         meal = (
             Meal.query.join(Day)
@@ -293,13 +342,20 @@ class ProductService:
             new_product = Product(meal=meal, name=name, weight=weight)
             db.session.add(new_product)
             db.session.commit()
-            return True
-        return False
+            return True, ""
+        return False, "Прием пищи не найден или доступ запрещён"
 
     @staticmethod
-    def update_product(product_id: int, user_id: int, name: str, weight: int) -> bool:
+    def update_product(product_id: int, user_id: int, name: str, weight: int) -> tuple[bool, str]:
         """Обновляет продукт"""
         from raskladka import db
+
+        # Валидируем имя и вес продукта (исключаем текущий продукт из проверки)
+        is_valid, error_message = ProductService.validate_product_name_weight(
+            user_id, name, weight, exclude_product_id=product_id
+        )
+        if not is_valid:
+            return False, error_message
 
         product = (
             Product.query.join(Meal)
@@ -313,8 +369,8 @@ class ProductService:
             product.name = name
             product.weight = weight
             db.session.commit()
-            return True
-        return False
+            return True, ""
+        return False, "Продукт не найден или доступ запрещён"
 
     @staticmethod
     def delete_product(product_id: int, user_id: int) -> bool:
