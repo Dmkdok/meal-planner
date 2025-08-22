@@ -219,6 +219,107 @@
             border-bottom: 2px solid #dee2e6;
         }
 
+        /* Компактные аккордеоны на вкладке калькулятора */
+        details.accordion {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: #fff;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        details.accordion > summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 10px 12px;
+            font-weight: 600;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        details.accordion > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.accordion[open] > summary {
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+
+        details.accordion .accordion-body {
+            padding: 12px;
+        }
+
+        /* Горизонтальная ячейка с параметрами расчета */
+        .calc-controls {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            justify-content: space-between;
+            background: #ffffff;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .calc-controls .controls-fields {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .calc-controls .controls-actions {
+            margin-left: auto;
+        }
+
+        .calc-controls .setting-group {
+            margin: 0;
+        }
+
+        .calc-controls .setting-group label {
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+
+        /* Горизонтальный блок деталей */
+        .details-inline {
+            display: flex;
+            gap: 16px;
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+
+        .details-inline > * {
+            flex: 1 1 300px;
+        }
+
+        /* Тонкая настройка для блока "Больше деталей" */
+        .details-results .results-section {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .details-info .info-box {
+            background: #f1f6ff;
+        }
+
+        /* Кнопка экспорта в статистике не влияет на текст и центрируется по высоте */
+        .stats-block {
+            position: relative;
+        }
+
+        .stats-block .stats-export-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
         .product-categories {
             height: calc(100% - 60px);
             overflow-y: auto;
@@ -446,6 +547,47 @@
         .calculate-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        /* Кнопки экспорта */
+        .export-excel-btn, .export-pdf-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .export-excel-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            box-shadow: 0 2px 10px rgba(40, 167, 69, 0.15);
+        }
+
+        .export-excel-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        /* Сохраняем вертикальное центрирование кнопки в статистике и добавляем лёгкое смещение при ховере */
+        .stats-block .export-excel-btn:hover {
+            transform: translateY(calc(-50% - 1.5px));
+        }
+
+        .export-pdf-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            box-shadow: 0 2px 10px rgba(220, 53, 69, 0.15);
+        }
+
+        .export-pdf-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
         }
 
         .results-section {
@@ -1359,106 +1501,51 @@
 
                     <!-- Основная таблица результатов -->
                     <div class="main-results-section" id="main-results-section" style="display: none;">
-                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px;">
-                            <button class="export-pdf-btn" onclick="exportToPDF()" style="display: none;" id="export-pdf-btn">
-                                📄 Экспорт в PDF
-                            </button>
-                        </div>
                         <div class="main-results-content" id="main-results-content">
                             <!-- Основная таблица будет добавлена через JavaScript -->
                         </div>
                     </div>
 
-                    <div class="calculator-grid">
-                        <!-- Левая панель - Информация о раскладке -->
-                        <div class="calculator-panel">
-                            <h3>📋 Текущая раскладка</h3>
-                            <div class="layout-info">
-                                <div class="layout-summary">
-                                    <h4>📊 {{ selected_plan.name }}</h4>
-                                    <p><strong>Рационов в раскладке:</strong> {{ selected_plan.days|length }}</p>
-                                    <p><strong>Всего приемов пищи:</strong>
-                                        {% set total_meals = 0 %}
-                                        {% for day in selected_plan.days %}
-                                            {% for meal in day.meals %}
-                                                {% set total_meals = total_meals + 1 %}
-                                            {% endfor %}
-                                        {% endfor %}
-                                        {{ total_meals }}
-                                    </p>
-                                    <p><strong>Всего продуктов:</strong>
-                                        {% set total_products = 0 %}
-                                        {% for day in selected_plan.days %}
-                                            {% for meal in day.meals %}
-                                                {% set total_products = total_products + meal.products|length %}
-                                            {% endfor %}
-                                        {% endfor %}
-                                        {{ total_products }}
-                                    </p>
-                                </div>
-
-                                <div class="layout-details">
-                                    <h4>📅 Детали по рационам:</h4>
-                                    {% for day in selected_plan.days %}
-                                    <div class="day-summary">
-                                        <h5>Рацион {{ day.day_number }}</h5>
-                                        <div class="meals-summary">
-                                            {% for meal in day.meals %}
-                                            <div class="meal-summary">
-                                                <span class="meal-type">{{ meal.meal_type }}</span>
-                                                <span class="products-count">
-                                                    {{ meal.products|length }} продуктов
-                                                </span>
-                                            </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
+                    <div class="calc-controls">
+                        <div class="controls-fields">
+                            <div class="setting-group">
+                                <label for="trip-days">Длительность похода (дней)</label>
+                                <input type="number" id="trip-days" value="{{ selected_plan.days|length }}" min="1" max="30">
+                            </div>
+                            <div class="setting-group">
+                                <label for="people-count">Количество человек</label>
+                                <input type="number" id="people-count" value="1" min="1" max="10">
                             </div>
                         </div>
-
-                        <!-- Правая панель - Расчеты -->
-                        <div class="calculator-panel">
-                            <h3>📊 Параметры расчета</h3>
-                            <div class="calculation-settings">
-                                <div class="setting-group">
-                                    <label for="trip-days">Длительность похода (дней):</label>
-                                    <input type="number" id="trip-days" value="{{ selected_plan.days|length }}" min="1" max="30">
-                                </div>
-                                <div class="setting-group">
-                                    <label for="people-count">Количество человек:</label>
-                                    <input type="number" id="people-count" value="1" min="1" max="10">
-                                </div>
-                            </div>
-
-                            <div class="calculation-info">
-                                <div class="info-box">
-                                    <h4>ℹ️ Как работает расчет:</h4>
-                                    <ul>
-                                        <li>Система берет продукты из вашей раскладки</li>
-                                        <li>Показывает использование в каждом рационе (дне раскладки)</li>
-                                        <li>Суммирует количество повторений за весь поход</li>
-                                        <li>Учитывает количество человек</li>
-                                        <li>Общий вес = Количество повторений × Вес за 1 прием на всех человек</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="calculate-section">
-                                <button class="calculate-btn" onclick="calculateFromLayout()">
-                                    🧮 Рассчитать на основе раскладки
-                                </button>
-                            </div>
-
-                            <div class="results-section" id="results-section" style="display: none;">
-                                <h4>📊 Детали расчета</h4>
-                                <div class="results-content" id="results-content">
-                                    <!-- Детали расчета будут добавлены через JavaScript -->
-                                </div>
-                            </div>
+                        <div class="controls-actions">
+                            <button class="calculate-btn" onclick="calculateFromLayout()">🧮 Рассчитать</button>
                         </div>
                     </div>
+
+                    <details class="accordion" id="more-details">
+                        <summary>Больше деталей</summary>
+                        <div class="accordion-body">
+                            <div class="details-inline">
+                                <div class="details-info">
+                                    <div class="info-box">
+                                        <h4>ℹ️ Как работает расчет:</h4>
+                                        <ul>
+                                            <li>Система берет продукты из вашей раскладки</li>
+                                            <li>Показывает использование в каждом рационе (дне раскладки)</li>
+                                            <li>Суммирует количество повторений за весь поход</li>
+                                            <li>Учитывает количество человек</li>
+                                            <li>Общий вес = Количество повторений × Вес за 1 прием на всех человек</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="details-results">
+                                    <div class="results-section" id="results-section" style="display: none;">
+                                        <div class="results-content" id="results-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </div>
         </div>
@@ -1658,10 +1745,13 @@
                 `${Math.round(totalWeight)} г`;
 
             mainHtml += `
-                <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #28a745;">
-                    <h5 style="margin: 0 0 10px 0; color: #1e7e34;">📊 Общая статистика</h5>
-                    <p style="margin: 5px 0; color: #1e7e34;"><strong>Всего продуктов:</strong> ${results.length}</p>
-                    <p style="margin: 5px 0; color: #1e7e34;"><strong>Общий вес для покупки:</strong> ${totalWeightText}</p>
+                <div class="stats-block" style="margin-top: 20px; padding: 15px; padding-right: 120px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #28a745;">
+                    <h5 style=\"margin: 0 0 4px 0; color: #1e7e34;\">📊 Общая статистика</h5>
+                    <p style=\"margin: 0 0 5px 0; color: #1e7e34;\"><strong>Всего продуктов:</strong> ${results.length}</p>
+                    <p style=\"margin: 5px 0 0 0; color: #1e7e34;\"><strong>Общий вес для покупки:</strong> ${totalWeightText}</p>
+                    <button class="export-excel-btn stats-export-btn" onclick="exportToExcel()" id="export-excel-btn" data-plan-id="{{ selected_plan.id }}">
+                        📊 Экспорт в Excel
+                    </button>
                 </div>
             `;
 
@@ -1683,6 +1773,19 @@
             mainResultsSection.style.display = 'block';
             resultsSection.style.display = 'block';
 
+            // Авто-раскрытие аккордеона с деталями расчета
+            const moreDetails = document.getElementById('more-details');
+            if (moreDetails) {
+                moreDetails.open = true;
+            }
+
+            // Проставить параметры на кнопке экспорта
+            const exportExcelBtn = document.getElementById('export-excel-btn');
+            if (exportExcelBtn) {
+                exportExcelBtn.dataset.tripDays = tripDays;
+                exportExcelBtn.dataset.peopleCount = peopleCount;
+            }
+
             // Плавная прокрутка к основной таблице с учетом высоты фиксированного header
             try {
                 const header = document.querySelector('.app-header');
@@ -1691,6 +1794,21 @@
                 window.scrollTo({ top: targetY, behavior: 'smooth' });
             } catch (e) {
                 mainResultsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        async function exportToExcel() {
+            const btn = document.getElementById('export-excel-btn');
+            const tripDays = btn && btn.dataset ? btn.dataset.tripDays : document.getElementById('trip-days').value;
+            const peopleCount = btn && btn.dataset ? btn.dataset.peopleCount : document.getElementById('people-count').value;
+            const planId = btn && btn.dataset ? btn.dataset.planId : (window.PLanId || '');
+
+            try {
+                const url = `/export_excel?plan_id=${encodeURIComponent(planId)}&trip_days=${encodeURIComponent(tripDays)}&people_count=${encodeURIComponent(peopleCount)}`;
+                window.location.href = url;
+            } catch (e) {
+                console.error('Ошибка при экспорте в Excel:', e);
+                showMessage('Произошла ошибка при экспорте в Excel', 'error');
             }
         }
 
