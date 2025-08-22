@@ -1750,12 +1750,12 @@
             `;
 
                         results.forEach(result => {
-                const weightText = result.weight >= 1000 ?
-                    `${(result.weight / 1000).toFixed(1)} кг` :
-                    `${result.weight} г`;
+                const weightText = (result.weight || 0) >= 1000 ?
+                    `${((result.weight || 0) / 1000).toFixed(1)} кг` :
+                    `${result.weight || 0} г`;
 
                 // Вес за один прием пищи × количество человек
-                const weightPerMealForPeople = result.weightPerMeal * peopleCount;
+                const weightPerMealForPeople = (result.weight_per_meal || 0) * peopleCount;
                 const weightPerMealText = weightPerMealForPeople >= 1000 ?
                     `${(weightPerMealForPeople / 1000).toFixed(1)} кг` :
                     `${Math.round(weightPerMealForPeople)} г`;
@@ -1778,7 +1778,7 @@
                 }
 
                 mainHtml += `
-                        <td class="occurrences-cell">${result.occurrences}</td>
+                        <td class="occurrences-cell">${result.occurrences || 0}</td>
                         <td class="weight-cell">${weightText}</td>
                     </tr>
                 `;
@@ -1791,7 +1791,7 @@
             `;
 
             // Добавляем статистику
-            const totalWeight = results.reduce((sum, result) => sum + result.weight, 0);
+            const totalWeight = results.reduce((sum, result) => sum + (result.weight || 0), 0);
             const totalWeightText = totalWeight >= 1000 ?
                 `${(totalWeight / 1000).toFixed(1)} кг` :
                 `${totalWeight} г`;

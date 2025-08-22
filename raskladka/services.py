@@ -65,7 +65,12 @@ class CalculationService:
         for product_name, product_data in products_map.items():
             total_weight = product_data["weight"] * layout_repetitions * people_count
             total_occurrences = product_data["occurrences"] * layout_repetitions
-            weight_per_meal = product_data["weight"] / product_data["occurrences"]
+            # Вес продукта за один прием пищи (среднее по всем приемам)
+            weight_per_meal = (
+                product_data["weight"] / product_data["occurrences"]
+                if product_data["occurrences"] > 0
+                else 0
+            )
 
             results.append(
                 {
