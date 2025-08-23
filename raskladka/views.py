@@ -23,11 +23,14 @@ from raskladka.services import (
     DayService,
     MealService,
     ProductService,
+    BackupService,
 )
 from raskladka.utils import validate_positive_integer
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+import json
+from datetime import datetime
 
 views = Blueprint("views", __name__)
 
@@ -328,9 +331,22 @@ def register():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
+
+        if not username or not password or not confirm_password:
+            flash("Все поля обязательны к заполнению", "error")
+            return redirect(url_for("views.register"))
+
+        if password != confirm_password:
+            flash("Пароль и подтверждение не совпадают", "error")
+            return redirect(url_for("views.register"))
+
+        if len(password) < 6:
+            flash("Пароль должен быть не короче 6 символов", "error")
+            return redirect(url_for("views.register"))
 
         if User.query.filter_by(username=username).first():
-            flash("Имя пользователя уже занято")
+            flash("Имя пользователя уже занято", "error")
             return redirect(url_for("views.register"))
 
         hashed_password = (
@@ -339,7 +355,7 @@ def register():
         user = User(username=username, password=hashed_password)
         db.session.add(user)
         db.session.commit()
-        flash("Регистрация прошла успешно! Теперь вы можете войти.")
+        flash("Регистрация прошла успешно! Теперь вы можете войти.", "success")
         return redirect(url_for("views.login"))
 
     return render_template("register.html")
@@ -356,7 +372,7 @@ def login():
         if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for("views.index"))
-        flash("Неверное имя пользователя или пароль")
+        flash("Неверное имя пользователя или пароль", "error")
 
     return render_template("login.html")
 
@@ -492,6 +508,62 @@ def logout():
     return redirect(url_for("views.login"))
 
 
+@views.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    if request.method == "POST":
+        form_action = request.form.get("action", "change_password")
+
+        if form_action == "change_password":
+            current_password = request.form.get("current_password", "")
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+
+            # Basic validation
+            if (
+                not current_password
+                or not new_password
+                or not confirm_password
+            ):
+                flash("Все поля обязательны к заполнению")
+                return redirect(url_for("views.profile"))
+
+            if not bcrypt.check_password_hash(
+                current_user.password, current_password
+            ):
+                flash("Текущий пароль неверный")
+                return redirect(url_for("views.profile"))
+
+            if new_password != confirm_password:
+                flash("Новый пароль и подтверждение не совпадают")
+                return redirect(url_for("views.profile"))
+
+            if len(new_password) < 6:
+                flash("Новый пароль должен быть не короче 6 символов")
+                return redirect(url_for("views.profile"))
+
+            try:
+                hashed_password = (
+                    bcrypt.generate_password_hash(new_password).decode("utf-8")
+                )
+                # Обновляем пароль текущего пользователя
+                user = db.session.get(User, current_user.id)
+                user.password = hashed_password
+                db.session.commit()
+                flash("Пароль успешно обновлен")
+                return redirect(url_for("views.profile"))
+            except Exception as e:  # noqa: BLE001
+                db.session.rollback()
+                print(f"Ошибка при смене пароля: {e}")
+                flash("Не удалось обновить пароль. Попробуйте позже")
+                return redirect(url_for("views.profile"))
+        else:
+            flash("Неизвестное действие")
+            return redirect(url_for("views.profile"))
+
+    return render_template("profile.html", user=current_user)
+
+
 @views.route("/export_excel", methods=["GET"])
 @login_required
 def export_excel():
@@ -566,3 +638,73 @@ def export_excel():
     except Exception as e:  # noqa: BLE001
         print(f"Ошибка при экспорте Excel: {e}")
         return _json_error("Внутренняя ошибка сервера", 500)
+
+
+@views.route("/backup/export", methods=["GET"])
+@login_required
+def backup_export():
+    """Экспорт всех раскладок пользователя в JSON-файл."""
+    try:
+        data = BackupService.export_user_data(current_user.id)
+
+        # Подготавливаем отдачу файла
+        output = BytesIO()
+        output.write(
+            json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+        )
+        output.seek(0)
+
+        safe_username = (
+            str(current_user.username).replace("/", "-").replace("\\", "-")
+        )
+        ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        filename = f"raskladka_backup_{safe_username}_{ts}.json"
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/json; charset=utf-8",
+        )
+    except Exception as e:  # noqa: BLE001
+        print(f"Ошибка при экспорте JSON: {e}")
+        return _json_error("Не удалось создать резервную копию", 500)
+
+
+@views.route("/backup/import", methods=["POST"])
+@login_required
+def backup_import():
+    """Импорт раскладок пользователя из загруженного JSON-файла."""
+    try:
+        if "backup_file" not in request.files:
+            flash("Файл не загружен")
+            return redirect(url_for("views.profile"))
+
+        file = request.files["backup_file"]
+        if not file or file.filename == "":
+            flash("Выберите файл для загрузки")
+            return redirect(url_for("views.profile"))
+
+        # Читаем содержимое файла как UTF-8
+        try:
+            payload = file.read().decode("utf-8")
+            data = json.loads(payload)
+        except Exception:  # noqa: BLE001
+            flash("Некорректный JSON в файле")
+            return redirect(url_for("views.profile"))
+
+        replace = request.form.get("replace", "on") == "on"
+
+        success, message = BackupService.import_user_data(
+            current_user.id, data, replace=replace
+        )
+        if success:
+            return redirect(url_for("views.index", import_success="1"))
+        else:
+            flash(message)
+            return redirect(url_for("views.profile"))
+
+    except Exception as e:  # noqa: BLE001
+        print(f"Ошибка при импорте JSON: {e}")
+        flash("Не удалось импортировать резервную копию")
+        return redirect(url_for("views.profile"))

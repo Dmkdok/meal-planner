@@ -1,5 +1,6 @@
 # raskladka/services.py
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 from raskladka.models import MealPlan, Day, Meal, Product
 from raskladka.utils import (
     normalize_product_name_display,
@@ -451,3 +452,331 @@ class ProductService:
             db.session.commit()
             return True
         return False
+
+
+class BackupService:
+    """Сервис для экспорта/импорта раскладок пользователя в/из JSON"""
+
+    # ----- helpers -----
+    @staticmethod
+    def _parse_meal_plans_data(data: Dict[str, Any]) -> tuple[bool, list, str]:
+        if not isinstance(data, dict):
+            return False, [], "Некорректный формат бэкапа: ожидался объект"
+        meal_plans_data = data.get("meal_plans", [])
+        if not isinstance(meal_plans_data, list):
+            return (
+                False,
+                [],
+                "Некорректный формат бэкапа: отсутствует список 'meal_plans'",
+            )
+        return True, meal_plans_data, ""
+
+    @staticmethod
+    def _parse_created_at(created_at_str: Any) -> Optional[datetime]:
+        if isinstance(created_at_str, str) and created_at_str:
+            ts = created_at_str.rstrip("Z")
+            try:
+                return datetime.fromisoformat(ts)
+            except Exception:  # noqa: BLE001
+                return None
+        return None
+
+    @staticmethod
+    def _iter_product_entries(meal_plans_data: list):
+        for plan in meal_plans_data:
+            days_data = plan.get("days", [])
+            if not isinstance(days_data, list):
+                continue
+            for day in days_data:
+                meals_data = day.get("meals", [])
+                if not isinstance(meals_data, list):
+                    continue
+                for meal in meals_data:
+                    products_data = meal.get("products", [])
+                    if not isinstance(products_data, list):
+                        continue
+                    yield from BackupService._iter_products(products_data)
+
+    @staticmethod
+    def _iter_products(products_data: list):
+        for product in products_data:
+            raw_name = product.get("name", "")
+            try:
+                weight = int(product.get("weight", 0))
+            except Exception:  # noqa: BLE001
+                weight = 0
+            if not raw_name or weight <= 0:
+                continue
+            key = canonical_product_key(str(raw_name))
+            display_name = normalize_product_name_display(str(raw_name))
+            yield key, display_name, weight
+
+    @staticmethod
+    def _collect_import_product_weights(
+        meal_plans_data: list,
+    ) -> tuple[Dict[str, set[int]], Dict[str, str]]:
+        weights_by_key: Dict[str, set[int]] = {}
+        display_by_key: Dict[str, str] = {}
+
+        for key, display_name, weight in BackupService._iter_product_entries(
+            meal_plans_data
+        ):
+            if key not in weights_by_key:
+                weights_by_key[key] = set()
+                display_by_key[key] = display_name
+            weights_by_key[key].add(weight)
+
+        return weights_by_key, display_by_key
+
+    @staticmethod
+    def _find_weight_conflicts_in_file(
+        weights_by_key: Dict[str, set[int]],
+        display_by_key: Dict[str, str],
+    ) -> list[str]:
+        conflicts: list[str] = []
+        for key, weights in weights_by_key.items():
+            if len(weights) > 1:
+                sorted_weights = sorted(list(weights))
+                name = display_by_key.get(key, "Продукт")
+                conflicts.append(
+                    "Продукт '"
+                    + name
+                    + "' имеет разные веса в файле: "
+                    + ", ".join(str(w) + "г" for w in sorted_weights)
+                )
+        return conflicts
+
+    @staticmethod
+    def _build_existing_weight_by_key(user_id: int) -> Dict[str, int]:
+        query = (
+            Product.query.join(Meal)
+            .join(Day)
+            .join(MealPlan)
+            .filter(MealPlan.user_id == user_id)
+        )
+        existing_products = query.all()
+        existing_weight_by_key: Dict[str, int] = {}
+        for product in existing_products:
+            key = canonical_product_key(product.name)
+            if key not in existing_weight_by_key:
+                existing_weight_by_key[key] = product.weight
+        return existing_weight_by_key
+
+    @staticmethod
+    def _find_conflicts_with_existing(
+        weights_by_key: Dict[str, set[int]],
+        display_by_key: Dict[str, str],
+        existing_weight_by_key: Dict[str, int],
+    ) -> list[str]:
+        conflicts: list[str] = []
+        for key, weights in weights_by_key.items():
+            if key in existing_weight_by_key and len(weights) == 1:
+                imported_weight = next(iter(weights))
+                existing_weight = existing_weight_by_key[key]
+                if imported_weight != existing_weight:
+                    name = display_by_key.get(key, "Продукт")
+                    conflicts.append(
+                        "Продукт '"
+                        + name
+                        + "' имеет вес "
+                        + str(existing_weight)
+                        + "г в ваших раскладках, а в файле — "
+                        + str(imported_weight)
+                        + "г"
+                    )
+        return conflicts
+
+    @staticmethod
+    def _validate_before_import(
+        user_id: int, meal_plans_data: list, replace: bool
+    ) -> tuple[bool, str]:
+        weights_by_key, display_by_key = (
+            BackupService._collect_import_product_weights(meal_plans_data)
+        )
+
+        conflicts: list[str] = BackupService._find_weight_conflicts_in_file(
+            weights_by_key, display_by_key
+        )
+
+        if not replace:
+            existing_weight_by_key = (
+                BackupService._build_existing_weight_by_key(user_id)
+            )
+            conflicts.extend(
+                BackupService._find_conflicts_with_existing(
+                    weights_by_key, display_by_key, existing_weight_by_key
+                )
+            )
+
+        if conflicts:
+            shown = conflicts[:5]
+            more_count = max(0, len(conflicts) - 5)
+            message = (
+                "Импорт отменен. Обнаружены противоречия весов продуктов:\n- "
+                + "\n- ".join(shown)
+            )
+            if more_count:
+                message += f"\n… и еще {more_count} конфликт(а/ов)"
+            return False, message
+
+        return True, ""
+
+    @staticmethod
+    def _clear_user_plans(user_id: int) -> None:
+        from raskladka import db
+
+        existing_plans = MealPlan.query.filter_by(user_id=user_id).all()
+        for plan in existing_plans:
+            db.session.delete(plan)
+        db.session.flush()
+
+    @staticmethod
+    def _import_products(meal: Meal, products_data: Any) -> None:
+        from raskladka import db
+
+        if not isinstance(products_data, list):
+            products_data = []
+
+        for product_data in products_data:
+            raw_name = product_data.get("name", "")
+            try:
+                weight = int(product_data.get("weight", 0))
+            except Exception:  # noqa: BLE001
+                weight = 0
+            if not raw_name or weight <= 0:
+                continue
+
+            display_name = normalize_product_name_display(str(raw_name))
+            product = Product(meal=meal, name=display_name, weight=weight)
+            db.session.add(product)
+
+    @staticmethod
+    def _import_meals(day: Day, meals_data: Any) -> None:
+        from raskladka import db
+
+        if not isinstance(meals_data, list):
+            meals_data = []
+
+        for meal_data in meals_data:
+            meal_type = str(meal_data.get("meal_type", "Прием пищи"))[:50]
+            meal = Meal(day=day, meal_type=meal_type)
+            db.session.add(meal)
+            BackupService._import_products(meal, meal_data.get("products", []))
+
+    @staticmethod
+    def _import_plan(user_id: int, plan_data: Dict[str, Any]) -> None:
+        from raskladka import db
+
+        name = str(plan_data.get("name", "Импортированная раскладка"))[:100]
+        created_at_val = BackupService._parse_created_at(
+            plan_data.get("created_at")
+        )
+
+        meal_plan = MealPlan(
+            user_id=user_id,
+            name=name,
+            created_at=created_at_val or datetime.utcnow(),
+        )
+        db.session.add(meal_plan)
+
+        days_data = plan_data.get("days", [])
+        if not isinstance(days_data, list):
+            days_data = []
+
+        for day_data in sorted(
+            days_data, key=lambda d: int(d.get("day_number", 0))
+        ):
+            try:
+                day_number = int(day_data.get("day_number", 0))
+            except Exception:  # noqa: BLE001
+                day_number = 0
+            if day_number <= 0:
+                continue
+
+            day = Day(meal_plan=meal_plan, day_number=day_number)
+            db.session.add(day)
+            BackupService._import_meals(day, day_data.get("meals", []))
+
+    @staticmethod
+    def export_user_data(user_id: int) -> Dict[str, Any]:
+        """Собирает все раскладки пользователя в словарь для JSON-бэкапа."""
+        data: Dict[str, Any] = {
+            "version": 1,
+            "exported_at": datetime.utcnow().isoformat() + "Z",
+            "meal_plans": [],
+        }
+
+        plans: List[MealPlan] = MealPlan.query.filter_by(user_id=user_id).all()
+        for plan in plans:
+            plan_dict: Dict[str, Any] = {
+                "name": plan.name,
+                "created_at": plan.created_at.isoformat() + "Z"
+                if isinstance(plan.created_at, datetime)
+                else None,
+                "days": [],
+            }
+
+            # Гарантируем детерминированный порядок дней
+            for day in sorted(plan.days, key=lambda d: d.day_number):
+                day_dict: Dict[str, Any] = {
+                    "day_number": day.day_number,
+                    "meals": [],
+                }
+                for meal in day.meals:
+                    meal_dict: Dict[str, Any] = {
+                        "meal_type": meal.meal_type,
+                        "products": [],
+                    }
+                    for product in meal.products:
+                        meal_dict["products"].append(
+                            {
+                                "name": product.name,
+                                "weight": product.weight,
+                            }
+                        )
+                    day_dict["meals"].append(meal_dict)
+                plan_dict["days"].append(day_dict)
+
+            data["meal_plans"].append(plan_dict)
+
+        return data
+
+    @staticmethod
+    def import_user_data(
+        user_id: int, data: Dict[str, Any], replace: bool = True
+    ) -> tuple[bool, str]:
+        """Импортирует раскладки пользователя из словаря JSON.
+
+        Args:
+            user_id: ID текущего пользователя
+            data: распарсенный JSON
+            replace: если True — удаляет текущие раскладки пользователя
+                и заменяет из бэкапа
+        """
+        from raskladka import db
+
+        try:
+            ok, meal_plans_data, error = BackupService._parse_meal_plans_data(
+                data
+            )
+            if not ok:
+                return False, error
+
+            valid, validation_error = BackupService._validate_before_import(
+                user_id, meal_plans_data, replace
+            )
+            if not valid:
+                return False, validation_error
+
+            if replace:
+                BackupService._clear_user_plans(user_id)
+
+            for plan_data in meal_plans_data:
+                BackupService._import_plan(user_id, plan_data)
+
+            db.session.commit()
+            return True, "Импорт выполнен успешно"
+
+        except Exception as e:  # noqa: BLE001
+            db.session.rollback()
+            return False, f"Ошибка импорта: {e}"

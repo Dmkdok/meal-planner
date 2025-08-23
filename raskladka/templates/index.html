@@ -142,6 +142,10 @@
             border: 1px solid rgba(255,255,255,0.2);
         }
 
+        .logout-btn.logout-small {
+            padding: 8px 12px;
+        }
+
         .logout-btn:hover {
             color: white;
             background: rgba(255,255,255,0.2);
@@ -974,6 +978,12 @@
             box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
         }
 
+        .auth-links {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .auth-links a {
             color: #6c757d;
             text-decoration: none;
@@ -1422,7 +1432,11 @@
                 </nav>
                 <div class="user-section">
                     <div class="auth-links">
-                        <a href="{{ url_for('views.logout') }}" class="logout-btn">
+                        <a href="{{ url_for('views.profile') }}" class="logout-btn">
+                            <span class="btn-icon">👤</span>
+                            Профиль
+                        </a>
+                        <a href="{{ url_for('views.logout') }}" class="logout-btn logout-small">
                             <span class="btn-icon">🚪</span>
                             Выйти
                         </a>
@@ -2063,6 +2077,19 @@
 
         // Инициализация приложения
         document.addEventListener('DOMContentLoaded', function() {
+            // Показ глобального уведомления после успешного импорта
+            try {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('import_success') === '1') {
+                    showMessage('Раскладки успешно импортированы');
+                    // Убираем параметр из адресной строки, чтобы не повторялось после F5
+                    params.delete('import_success');
+                    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+                    window.history.replaceState({}, '', newUrl);
+                }
+            } catch (e) {
+                // ignore
+            }
             // Загружаем сохраненные параметры расчета
             loadCalculationParams();
 

@@ -1,0 +1,68 @@
+<!-- raskladka/templates/profile.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23e3f2fd' stroke='%23667eea' stroke-width='1'/><circle cx='12' cy='14' r='3' fill='%23ff6b6b'/><path d='M16 8c-2 0-4 1-5 3-1 2-1 4 0 6 1 2 3 3 5 3s4-1 5-3c1-2 1-4 0-6-1-2-3-3-5-3z' fill='%23ff6b6b'/><text x='16' y='22' text-anchor='middle' fill='%23667eea' font-family='Arial' font-size='8' font-weight='bold'>РП</text></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container" style="max-width: 480px;">
+        <h1>Профиль</h1>
+
+        <div style="text-align:center; margin-bottom: 10px; color:#6c757d;">
+            Вы вошли как <strong>{{ user.username }}</strong>
+        </div>
+
+        <form method="post">
+            <input type="hidden" name="action" value="change_password">
+            <input type="password" name="current_password" placeholder="Текущий пароль" required>
+            <input type="password" name="new_password" placeholder="Новый пароль" required>
+            <input type="password" name="confirm_password" placeholder="Подтвердите новый пароль" required>
+            <button type="submit">Сменить пароль</button>
+        </form>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div style="margin-top: 15px;">
+            {% for message in messages %}
+            <p style="text-align:center; color:#495057; background:#f1f3f5; border-radius:8px; padding:10px;">{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <hr style="margin: 16px 0;">
+        <h2 style="font-size: 1.2em; color:#495057; margin: 8px 0;">Резервная копия</h2>
+        <div class="backup-card">
+            <div class="backup-row" style="justify-content: space-between;">
+                <p class="backup-desc">Сохраните ваши раскладки или восстановите из файла JSON.</p>
+                <a href="{{ url_for('views.backup_export') }}" class="btn-compact gray" style="text-decoration:none;">
+                    ⬇️ Скачать JSON
+                </a>
+            </div>
+            <form method="post" action="{{ url_for('views.backup_import') }}" enctype="multipart/form-data" style="margin-top: 6px;">
+                <div class="backup-row top">
+                    <input class="file-input" type="file" name="backup_file" accept="application/json" required>
+                    <button type="submit" class="btn-compact small" title="Импортировать JSON">⬆️ Импорт</button>
+                </div>
+                <div class="backup-row">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="replace" checked>
+                        Заменить текущие раскладки
+                    </label>
+                    <small class="backup-hint">Формат файла: .json</small>
+                </div>
+            </form>
+        </div>
+
+        <div class="register-link" style="margin-top: 20px;">
+            <a href="{{ url_for('views.index') }}">← Вернуться к раскладке</a>
+        </div>
+    </div>
+</body>
+</html>
+
+

@@ -85,6 +85,42 @@ body {
     text-decoration: underline;
 }
 
+/* Alerts */
+.alerts { margin-top: 15px; }
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    border: 2px solid transparent;
+}
+.alert-error {
+    background: #ffecec;
+    border-color: #ff6b6b;
+    color: #c0392b;
+    box-shadow: 0 2px 12px rgba(255, 107, 107, 0.15);
+}
+.alert-success {
+    background: #eaffea;
+    border-color: #28a745;
+    color: #1e7e34;
+    box-shadow: 0 2px 12px rgba(40, 167, 69, 0.15);
+}
+.alert-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #ff6b6b;
+    color: #fff;
+    font-weight: 800;
+}
+.alert-text { flex: 1; }
+
 /* Адаптивность для мобильных устройств */
 @media (max-width: 480px) {
     body {
@@ -98,4 +134,96 @@ body {
     .container h1 {
         font-size: 1.8em;
     }
+}
+
+/* ---- Profile/Backup compact UI ---- */
+.backup-card {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 12px 12px 10px 12px;
+}
+
+.backup-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.backup-row .backup-desc {
+    color: #6c757d;
+    margin: 0;
+}
+
+.checkbox-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #495057;
+}
+
+/* Compact button consistent with site */
+.btn-compact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95em;
+    color: #fff;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.15);
+    transition: all 0.3s ease;
+}
+
+.btn-compact:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
+/* Override wide button rules inside container */
+.container .btn-compact {
+    width: auto;
+    margin-top: 0;
+}
+
+.btn-compact.gray {
+    background: linear-gradient(135deg, #6c757d 0%, #5c636a 100%);
+    box-shadow: 0 2px 10px rgba(108, 117, 125, 0.15);
+}
+
+.btn-compact.gray:hover {
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.3);
+}
+
+.file-input {
+    background: #fff;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* Backup import layout: top row one-line, checkbox row below */
+.backup-card .backup-row { gap: 8px; flex-wrap: wrap; margin-top: 0; }
+.backup-card .backup-row.top { flex-wrap: nowrap; margin-top: 5px; }
+.backup-card form .backup-row + .backup-row { margin-top: 5px; }
+
+.backup-card .top .file-input { flex: 1 1 auto; min-width: 0; width: auto; }
+.backup-card .btn-compact { flex: 0 0 auto; white-space: nowrap; }
+.btn-compact.small { padding: 10px 14px; font-size: 0.9em; line-height: 1; }
+.backup-card .top .btn-compact.small { height: 44px; }
+.backup-hint { color: #6c757d; font-size: 12px; }
+
+/* Add extra air under description and push download button down */
+.backup-card > .backup-row:first-of-type { align-items: flex-start; }
+.backup-card > .backup-row:first-of-type .backup-desc { margin-bottom: 10px; }
+.backup-card > .backup-row:first-of-type .btn-compact.gray { margin-top: 5px; }
+
+@media (max-width: 480px) {
+    .backup-row { gap: 8px; }
 }
