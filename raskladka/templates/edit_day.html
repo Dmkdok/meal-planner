@@ -25,7 +25,7 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            overflow: hidden;
+            overflow: visible;
         }
 
         .day-header {
@@ -531,6 +531,14 @@
                 width: 100%;
                 max-width: 300px;
             }
+
+            /* Ошибки под полями на мобильных: во флоу, на всю ширину */
+            .add-product-form .form-row .field-error,
+            .product-edit-form .field-error {
+                position: static;
+                width: 100%;
+                max-width: 300px;
+            }
         }
     </style>
 </head>
@@ -562,11 +570,11 @@
                         </div>
                         <div class="product-edit-form">
                             <div class="input-group">
-                                <input type="text" class="edit-input" data-type="name" value="{{ product.name }}" placeholder="Название продукта">
+                                <input type="text" class="edit-input" data-type="name" value="{{ product.name }}" placeholder="Название продукта" maxlength="100">
                                 <div class="field-error" id="edit-name-error-{{ product.id }}"></div>
                             </div>
                             <div class="input-group">
-                                <input type="number" class="edit-input" data-type="weight" value="{{ product.weight }}" placeholder="Вес (г)" min="1">
+                                <input type="number" class="edit-input" data-type="weight" value="{{ product.weight }}" placeholder="Вес (г)" min="1" max="500000">
                                 <div class="field-error" id="edit-weight-error-{{ product.id }}"></div>
                             </div>
                             <button class="save-product-btn" onclick="saveProductEdit({{ product.id }})">✓</button>
@@ -582,11 +590,11 @@
                 <div class="add-product-form">
                     <div class="form-row">
                         <div class="input-group">
-                            <input type="text" class="product-name" placeholder="Название продукта">
+                            <input type="text" class="product-name" placeholder="Название продукта" maxlength="100">
                             <div class="field-error" id="name-error-{{ meal.id }}"></div>
                         </div>
                         <div class="input-group">
-                            <input type="number" class="product-weight" placeholder="Вес (г)" min="1">
+                            <input type="number" class="product-weight" placeholder="Вес (г)" min="1" max="500000">
                             <div class="field-error" id="weight-error-{{ meal.id }}"></div>
                         </div>
                         <button class="add-product-btn" onclick="addProduct({{ meal.id }})">Добавить продукт</button>
@@ -678,6 +686,13 @@
             }
         }
 
+        // Валидация названия продукта (буквы латиницы/кириллицы, цифры, пробелы и основные символы)
+        function isValidProductName(name) {
+            // - _ . , ( ) / + % & : ; ' " №
+            const re = /^[\w\s\-\.,()\/+%&:;'"№_А-Яа-яЁё]+$/;
+            return re.test(name.trim());
+        }
+
         // Скрыть ошибку поля
         function hideFieldError(errorId) {
             const errorElement = document.getElementById(errorId);
@@ -699,6 +714,19 @@
                 'Вес 0? Даже перышко Гриффиндора весит больше! ⚡ Укажите реальный вес!',
                 'Ой, кажется, вес потерялся! 😅 Давайте найдем его — введите число больше нуля!',
                 'Нулевой вес? Мы знаем, что ваш продукт крутой, но дайте ему шанс показать свой вес! 😎'
+            ];
+            const idx = Math.floor(Math.random() * messages.length);
+            return messages[idx];
+        }
+
+        // Смешные подсказки для слишком большого веса (> 500 000 г)
+        function getRandomTooHeavyHint() {
+            const messages = [
+                'Полтонны на один прием? Для мамонта? 🦣 До 500 000 г, пожалуйста.',
+                'Похоже на поставку для космодрома! 🚀 Давайте уложимся в 500 000 г.',
+                'Стоп-стоп, это не склад, а раскладка! 📦 Не больше 500 000 г.',
+                'Тяжеловато! 🏋️‍♂️ Максимум 500 000 г на продукт.',
+                'Кажется, весы сломались от такой цифры. 🔧 До 500 000 г, пожалуйста!'
             ];
             const idx = Math.floor(Math.random() * messages.length);
             return messages[idx];
@@ -827,14 +855,27 @@
                 return;
             }
 
+            if (!isValidProductName(name)) {
+                showFieldError(`edit-name-error-${productId}`, 'Название продукта содержит недопустимые символы');
+                return;
+            }
+            if (name.length > 100) {
+                showFieldError(`edit-name-error-${productId}`, 'Название продукта не должно превышать 100 символов');
+                return;
+            }
+
             if (!weight) {
-                showFieldError(`edit-weight-error-${productId}`, 'Введите вес продукта');
+                showFieldError(`edit-name-error-${productId}`, 'Введите вес продукта');
                 return;
             }
 
             const parsedWeight = parseInt(weight, 10);
             if (isNaN(parsedWeight) || parsedWeight < 1) {
-                showFieldError(`edit-weight-error-${productId}`, getRandomWeightHint());
+                showFieldError(`edit-name-error-${productId}`, getRandomWeightHint());
+                return;
+            }
+            if (parsedWeight > 500000) {
+                showFieldError(`edit-name-error-${productId}`, getRandomTooHeavyHint());
                 return;
             }
 
@@ -871,7 +912,9 @@
                     showMessage('Продукт обновлен');
                 } else {
                     if (data.message && data.message.includes('уже существует')) {
-                        showFieldError(`edit-weight-error-${productId}`, data.message);
+                        showFieldError(`edit-name-error-${productId}`, data.message);
+                    } else if (data.message && /назв/i.test(data.message)) {
+                        showFieldError(`edit-name-error-${productId}`, data.message);
                     } else {
                         showMessage(data.message || 'Не удалось обновить продукт', 'error');
                     }
@@ -1035,14 +1078,27 @@
                 return;
             }
 
+            if (!isValidProductName(name)) {
+                showFieldError(`name-error-${mealId}`, 'Название продукта содержит недопустимые символы');
+                return;
+            }
+            if (name.length > 100) {
+                showFieldError(`name-error-${mealId}`, 'Название продукта не должно превышать 100 символов');
+                return;
+            }
+
             if (!weight) {
-                showFieldError(`weight-error-${mealId}`, 'Введите вес продукта');
+                showFieldError(`name-error-${mealId}`, 'Введите вес продукта');
                 return;
             }
 
             const parsedNewWeight = parseInt(weight, 10);
             if (isNaN(parsedNewWeight) || parsedNewWeight < 1) {
-                showFieldError(`weight-error-${mealId}`, getRandomWeightHint());
+                showFieldError(`name-error-${mealId}`, getRandomWeightHint());
+                return;
+            }
+            if (parsedNewWeight > 500000) {
+                showFieldError(`name-error-${mealId}`, getRandomTooHeavyHint());
                 return;
             }
 
@@ -1075,7 +1131,9 @@
                     location.reload();
                 } else {
                     if (data.message && data.message.includes('уже существует')) {
-                        showFieldError(`weight-error-${mealId}`, data.message);
+                        showFieldError(`name-error-${mealId}`, data.message);
+                    } else if (data.message && /назв/i.test(data.message)) {
+                        showFieldError(`name-error-${mealId}`, data.message);
                     } else {
                         showMessage(data.message || 'Не удалось добавить продукт', 'error');
                     }
@@ -1121,7 +1179,13 @@
                 input.addEventListener('input', function() {
                     const mealSection = input.closest('.meal-section');
                     const mealId = mealSection.dataset.mealId;
-                    hideFieldError(`weight-error-${mealId}`);
+                    hideFieldError(`name-error-${mealId}`);
+                });
+                // Очищаем ошибку при вводе
+                input.addEventListener('input', function() {
+                    const mealSection = input.closest('.meal-section');
+                    const mealId = mealSection.dataset.mealId;
+                    hideFieldError(`name-error-${mealId}`);
                 });
             });
 
@@ -1141,7 +1205,7 @@
                 input.addEventListener('input', function() {
                     const productItem = input.closest('.product-item');
                     const productId = productItem.dataset.productId;
-                    hideFieldError(`edit-weight-error-${productId}`);
+                    hideFieldError(`edit-name-error-${productId}`);
                 });
             });
         });

@@ -14,7 +14,15 @@
         <h1>Вход</h1>
         <form method="post">
             <input type="text" name="username" placeholder="Имя пользователя" required>
-            <input type="password" name="password" placeholder="Пароль" required>
+            <div class="input-with-icon">
+                <input type="password" id="password" name="password" placeholder="Пароль" required class="password-input">
+                <button type="button" class="toggle-visibility" aria-label="Показать пароль" title="Показать пароль" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+            </div>
             <button type="submit">Войти</button>
         </form>
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -33,6 +41,7 @@
             <a href="{{ url_for('views.register') }}">Нет аккаунта? Зарегистрироваться</a>
         </div>
     </div>
+    <script defer src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 
 </html>

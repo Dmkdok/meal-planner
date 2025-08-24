@@ -5,6 +5,7 @@ from raskladka.models import MealPlan, Day, Meal, Product
 from raskladka.utils import (
     normalize_product_name_display,
     canonical_product_key,
+    validate_product_name,
 )
 
 
@@ -379,6 +380,21 @@ class ProductService:
         """Добавляет новый продукт"""
         from raskladka import db
 
+        # Серверная валидация веса: 1..500_000 г
+        if weight < 1:
+            return False, "Вес продукта должен быть не меньше 1 грамма"
+        if weight > 500_000:
+            return False,
+            (
+                "Вес продукта должен быть не больше 500 000 г "
+                "(500 кг)"
+            )
+
+        # Серверная валидация названия по регулярному выражению
+        ok_name, name_error = validate_product_name(name)
+        if not ok_name:
+            return False, name_error
+
         display_name = normalize_product_name_display(name)
 
         is_valid, error_message = ProductService.validate_product_name_weight(
@@ -407,6 +423,21 @@ class ProductService:
     ) -> tuple[bool, str]:
         """Обновляет продукт"""
         from raskladka import db
+
+        # Серверная валидация веса: 1..500_000 г
+        if weight < 1:
+            return False, "Вес продукта должен быть не меньше 1 грамма"
+        if weight > 500_000:
+            return False,
+            (
+                "Вес продукта должен быть не больше 500 000 г "
+                "(500 кг)"
+            )
+
+        # Серверная валидация названия по регулярному выражению
+        ok_name, name_error = validate_product_name(name)
+        if not ok_name:
+            return False, name_error
 
         display_name = normalize_product_name_display(name)
 

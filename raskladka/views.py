@@ -25,7 +25,7 @@ from raskladka.services import (
     ProductService,
     BackupService,
 )
-from raskladka.utils import validate_positive_integer
+from raskladka.utils import validate_positive_integer, canonical_username
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -367,11 +367,13 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for("views.index"))
     if request.method == "POST":
-        username = request.form.get("username")
+        username_raw = request.form.get("username")
         password = request.form.get("password")
         confirm_password = request.form.get("confirm_password")
 
-        if not username or not password or not confirm_password:
+        username_norm = canonical_username(username_raw or "")
+
+        if not username_norm or not password or not confirm_password:
             flash("Все поля обязательны к заполнению", "error")
             return redirect(url_for("views.register"))
 
@@ -383,14 +385,18 @@ def register():
             flash("Пароль должен быть не короче 6 символов", "error")
             return redirect(url_for("views.register"))
 
-        if User.query.filter_by(username=username).first():
+        # Проверяем занятость логина без учета регистра и лишних пробелов
+        if User.query.filter(
+            db.func.lower(db.func.trim(User.username)) == username_norm
+        ).first():
             flash("Имя пользователя уже занято", "error")
             return redirect(url_for("views.register"))
 
         hashed_password = (
             bcrypt.generate_password_hash(password).decode("utf-8")
         )
-        user = User(username=username, password=hashed_password)
+        # Сохраняем логин в каноническом виде
+        user = User(username=username_norm, password=hashed_password)
         db.session.add(user)
         db.session.commit()
         flash("Регистрация прошла успешно! Теперь вы можете войти.", "success")
@@ -404,9 +410,14 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for("views.index"))
     if request.method == "POST":
-        username = request.form.get("username")
+        username_raw = request.form.get("username")
         password = request.form.get("password")
-        user = User.query.filter_by(username=username).first()
+        username_norm = canonical_username(username_raw or "")
+
+        # Ищем пользователя без учета регистра и пробелов по краям
+        user = User.query.filter(
+            db.func.lower(db.func.trim(User.username)) == username_norm
+        ).first()
         if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for("views.index"))

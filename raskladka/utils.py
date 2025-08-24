@@ -1,5 +1,6 @@
 # raskladka/utils.py
 from typing import Union
+import re
 
 
 def validate_positive_integer(
@@ -26,22 +27,19 @@ def validate_positive_integer(
 
 def normalize_product_name_display(name: str) -> str:
     """
-    Приводит название продукта к виду с большой первой буквы в каждом слове,
-    аккуратно обрабатывая лишние пробелы и дефисы.
-    Пример: "  пШено  крупа" -> "Пшено Крупа"
+    Приводит название продукта к виду,
+    где заглавной является только первая буква строки.
+    Убирает лишние пробелы (сворачивает кратные в один).
+    Пример: "  пШено  крупа" -> "Пшено крупа"
     """
     if not isinstance(name, str):
         return name
     # Убираем лишние пробелы по краям и внутри сворачиваем кратные пробелы
     compact = " ".join(name.strip().split())
-
-    # Для дефисных составных слов применяем capital case по частям
-    def title_keep_hyphen(token: str) -> str:
-        if "-" in token:
-            return "-".join(part.capitalize() for part in token.split("-"))
-        return token.capitalize()
-
-    return " ".join(title_keep_hyphen(tok) for tok in compact.split(" "))
+    if not compact:
+        return ""
+    lowered = compact.lower()
+    return lowered[0].upper() + lowered[1:]
 
 
 def canonical_product_key(name: str) -> str:
@@ -53,3 +51,40 @@ def canonical_product_key(name: str) -> str:
     if not isinstance(name, str):
         return str(name)
     return " ".join(name.strip().split()).casefold()
+
+
+def canonical_username(username: str) -> str:
+    """
+    Канонический вид имени пользователя: обрезает пробелы по краям
+    и приводит к нижнему регистру (casefold) для надежного сравнения.
+    Примеры:
+      " Dmkdok " -> "dmkdok"
+      "dmkdok"  -> "dmkdok"
+    """
+    if not isinstance(username, str):
+        return str(username)
+    return username.strip().lower()
+
+
+# Разрешаем все буквы и цифры (Unicode), пробелы и основные символы
+# - _ . , ( ) / + % & : ; ' " №
+_PRODUCT_NAME_REGEX = re.compile(r"^[\w\s\-\.,()/+%&:;'\"№_]+$", re.UNICODE)
+
+
+def validate_product_name(name: str) -> tuple[bool, str]:
+    """
+    Валидирует название продукта по регулярному выражению:
+    - допускаются все буквы и цифры (Unicode)
+    - пробелы
+    - основные символы: - _ . , ( ) / + % & : ; ' " №
+    """
+    if not isinstance(name, str):
+        return False, "Некорректное название продукта"
+    trimmed = name.strip()
+    if not trimmed:
+        return False, "Введите название продукта"
+    if len(trimmed) > 100:
+        return False, "Название продукта не должно превышать 100 символов"
+    if not _PRODUCT_NAME_REGEX.match(trimmed):
+        return False, "Название продукта содержит недопустимые символы"
+    return True, ""
