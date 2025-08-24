@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: raskladka_db
+    environment:
+      POSTGRES_DB: raskladka
+      POSTGRES_USER: rask_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  web:
+    image: ${WEB_IMAGE:-dmkdok/raskladka:latest}
+    pull_policy: always
+    container_name: raskladka_web
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5123:5000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-me}
+      - DATABASE_URI=postgresql+psycopg://rask_user:${POSTGRES_PASSWORD:-change-me}@db:5432/raskladka
+      - INIT_DB=${INIT_DB:-false}
+      - FLASK_ENV=production
+    volumes:
+      - instance_data:/app/instance
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request,sys; sys.exit(0) if urllib.request.urlopen(\"http://127.0.0.1:5000/health\", timeout=3).status==200 else sys.exit(1)'" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  instance_data:

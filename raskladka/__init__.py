@@ -3,11 +3,20 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
+import os
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "your-secret-key"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///meals.db"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your-secret-key")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URI", "sqlite:///meals.db"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "1") in ("1", "true", "yes")
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
+app.config["REMEMBER_COOKIE_SECURE"] = app.config["SESSION_COOKIE_SECURE"]
+app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -18,6 +27,9 @@ from raskladka.models import User
 from raskladka.views import views
 
 app.register_blueprint(views)
+
+# Trust proxy headers (for correct scheme/host when behind reverse proxy)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
 
 @login_manager.user_loader
@@ -31,6 +43,18 @@ def init_db():
             db.create_all()
         except Exception as e:
             print(f"Ошибка при создании базы данных: {e}")
+
+
+# Simple health endpoint
+@app.get("/health")
+def health():  # noqa: D401, ANN001
+    """Return health status for container orchestrator."""
+    try:
+        # simple DB check
+        db.session.execute(db.select(1))
+        return {"status": "ok"}, 200
+    except Exception:
+        return {"status": "degraded"}, 500
 
 
 # ----- Error handlers -----

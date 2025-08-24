@@ -103,6 +103,37 @@ python run.py
 
 3. Откройте браузер и перейдите по адресу: `http://localhost:5000`
 
+## Запуск в Docker
+
+Требуется установленный Docker.
+
+### Быстрый старт (docker compose)
+
+```bash
+docker compose build
+docker compose up -d
+# Откройте http://localhost:5000
+```
+
+По умолчанию используется файл БД `instance/meals.db` из локальной папки, примонтированный в контейнер.
+
+Переменные окружения:
+- `SECRET_KEY` — секретный ключ Flask (по умолчанию `change-me`)
+- `DATABASE_URI` — строка подключения SQLAlchemy (по умолчанию `sqlite:////app/instance/meals.db`)
+
+### Ручной запуск контейнера
+
+```bash
+docker build -t raskladka:latest .
+docker run -d \
+  -p 5000:5000 \
+  -e SECRET_KEY=change-me \
+  -e DATABASE_URI=sqlite:////app/instance/meals.db \
+  -v ${PWD}/instance:/app/instance \
+  --name raskladka_web \
+  raskladka:latest
+```
+
 ## Использование
 
 1. **Регистрация/Вход**: Создайте аккаунт или войдите в существующий

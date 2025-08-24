@@ -1,0 +1,33 @@
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env
+.venv/
+ENV/
+
+# Git
+.git
+.gitignore
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Local sqlite databases
+instance/*.db
+raskladka/instance/*.db
