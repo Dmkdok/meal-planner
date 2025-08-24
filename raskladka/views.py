@@ -41,7 +41,10 @@ def _json_error(message, status_code=400):
 
 # Handlers for POST actions on index
 def _handle_delete_plan(data):
-    plan_id = data.get("plan_id")
+    try:
+        plan_id = int(data.get("plan_id"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректный идентификатор раскладки")
     success = MealPlanService.delete_plan(plan_id, current_user.id)
     if success:
         return jsonify(
@@ -51,7 +54,10 @@ def _handle_delete_plan(data):
 
 
 def _handle_update_plan_name(data):
-    plan_id = data.get("plan_id")
+    try:
+        plan_id = int(data.get("plan_id"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректный идентификатор раскладки")
     new_name = data.get("new_name")
     success = MealPlanService.update_plan_name(
         plan_id, current_user.id, new_name
@@ -62,18 +68,27 @@ def _handle_update_plan_name(data):
 
 
 def _handle_delete_day(data):
-    success = DayService.delete_day(data.get("day_id"), current_user.id)
+    try:
+        day_id = int(data.get("day_id"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректный идентификатор дня")
+    success = DayService.delete_day(day_id, current_user.id)
     if success:
         return jsonify({"status": "success"})
     return _json_error("День не найден или доступ запрещён")
 
 
 def _handle_update_product(data):
+    try:
+        product_id = int(data.get("product_id"))
+        weight = int(data.get("weight"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректные данные продукта")
     success, message = ProductService.update_product(
-        data.get("product_id"),
+        product_id,
         current_user.id,
         data.get("name"),
-        data.get("weight"),
+        weight,
     )
     if success:
         return jsonify({"status": "success"})
@@ -81,28 +96,38 @@ def _handle_update_product(data):
 
 
 def _handle_delete_product(data):
-    success = ProductService.delete_product(
-        data.get("product_id"), current_user.id
-    )
+    try:
+        product_id = int(data.get("product_id"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректный идентификатор продукта")
+    success = ProductService.delete_product(product_id, current_user.id)
     if success:
         return jsonify({"status": "success"})
     return _json_error("Продукт не найден или доступ запрещён")
 
 
 def _handle_add_day(data):
-    success = DayService.add_day(
-        data.get("plan_id"), current_user.id, data.get("day_number")
-    )
+    try:
+        plan_id = int(data.get("plan_id"))
+        day_number = int(data.get("day_number"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректные параметры дня")
+    success = DayService.add_day(plan_id, current_user.id, day_number)
     if success:
         return jsonify({"status": "success"})
     return _json_error("Раскладка не найдена или доступ запрещён")
 
 
 def _handle_add_meal(data):
+    try:
+        plan_id = int(data.get("plan_id"))
+        day_number = int(data.get("day_number"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректные параметры приема пищи")
     success = MealService.add_meal(
-        data.get("plan_id"),
+        plan_id,
         current_user.id,
-        data.get("day_number"),
+        day_number,
         data.get("meal_type"),
     )
     if success:
@@ -111,11 +136,16 @@ def _handle_add_meal(data):
 
 
 def _handle_add_product(data):
+    try:
+        meal_id = int(data.get("meal_id"))
+        weight = int(data.get("weight"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректные данные продукта")
     success, message = ProductService.add_product(
-        data.get("meal_id"),
+        meal_id,
         current_user.id,
         data.get("name"),
-        data.get("weight"),
+        weight,
     )
     if success:
         return jsonify({"status": "success"})
@@ -123,15 +153,23 @@ def _handle_add_product(data):
 
 
 def _handle_remove_meal(data):
-    success = MealService.delete_meal(data.get("meal_id"), current_user.id)
+    try:
+        meal_id = int(data.get("meal_id"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректный идентификатор приема пищи")
+    success = MealService.delete_meal(meal_id, current_user.id)
     if success:
         return jsonify({"status": "success"})
     return _json_error("Прием пищи не найден или доступ запрещён")
 
 
 def _handle_update_meal_name(data):
+    try:
+        meal_id = int(data.get("meal_id"))
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректный идентификатор приема пищи")
     success = MealService.update_meal_type(
-        data.get("meal_id"), current_user.id, data.get("meal_name")
+        meal_id, current_user.id, data.get("meal_name")
     )
     if success:
         return jsonify({"status": "success"})
@@ -400,6 +438,11 @@ def index():
 
     meal_plans = MealPlanService.get_user_plans(current_user.id)
     selected_plan_id = request.args.get("plan_id")
+    if selected_plan_id is not None:
+        try:
+            selected_plan_id = int(selected_plan_id)
+        except Exception:  # noqa: BLE001
+            selected_plan_id = None
     selected_plan = (
         MealPlanService.get_plan_by_id(selected_plan_id, current_user.id)
         if selected_plan_id
@@ -425,7 +468,13 @@ def calculate_products():
     """API endpoint для расчета продуктов на основе раскладки"""
     try:
         data = request.get_json()
-        plan_id = data.get("plan_id")
+        try:
+            plan_id = int(data.get("plan_id"))
+        except Exception:  # noqa: BLE001
+            return jsonify({
+                "status": "error",
+                "message": "Некорректный идентификатор раскладки",
+            }), 400
         trip_days = data.get("trip_days")
         people_count = data.get("people_count")
 
@@ -570,6 +619,10 @@ def export_excel():
     """Экспорт таблицы расчета в Excel"""
     try:
         plan_id = request.args.get("plan_id")
+        try:
+            plan_id = int(plan_id) if plan_id is not None else None
+        except Exception:  # noqa: BLE001
+            return _json_error("Некорректный идентификатор раскладки", 400)
         trip_days = request.args.get("trip_days")
         people_count = request.args.get("people_count")
 

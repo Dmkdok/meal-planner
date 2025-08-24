@@ -8,15 +8,34 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your-secret-key")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URI", "sqlite:///meals.db"
-)
+
+# Database URI
+_db_uri = os.environ.get("DATABASE_URI", "sqlite:///meals.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = _db_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "1") in ("1", "true", "yes")
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get(
+    "SESSION_COOKIE_SECURE",
+    "1",
+) in ("1", "true", "yes")
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
+app.config["SESSION_COOKIE_SAMESITE"] = os.environ.get(
+    "SESSION_COOKIE_SAMESITE",
+    "Lax",
+)
 app.config["REMEMBER_COOKIE_SECURE"] = app.config["SESSION_COOKIE_SECURE"]
-app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))
+app.config["MAX_CONTENT_LENGTH"] = int(
+    os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024)
+)
+
+# For Postgres (psycopg3), disable server-side prepares and enable pre-ping
+if _db_uri.startswith("postgresql"):
+    engine_opts = dict(app.config.get("SQLALCHEMY_ENGINE_OPTIONS", {}))
+    connect_args = dict(engine_opts.get("connect_args", {}))
+    # Disable server-side prepares to avoid duplicate statements
+    connect_args.setdefault("prepare_threshold", None)
+    engine_opts["connect_args"] = connect_args
+    engine_opts.setdefault("pool_pre_ping", True)
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_opts
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -29,7 +48,9 @@ from raskladka.views import views
 app.register_blueprint(views)
 
 # Trust proxy headers (for correct scheme/host when behind reverse proxy)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1
+)
 
 
 @login_manager.user_loader
@@ -43,6 +64,17 @@ def init_db():
             db.create_all()
         except Exception as e:
             print(f"Ошибка при создании базы данных: {e}")
+
+
+# Ensure DB session cleanup per request
+@app.teardown_request
+def _teardown_request(exception):  # noqa: D401, ANN001
+    """Rollback on exception and remove the session at request end."""
+    try:
+        if exception is not None:
+            db.session.rollback()
+    finally:
+        db.session.remove()
 
 
 # Simple health endpoint
