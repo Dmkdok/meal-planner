@@ -1,7 +1,7 @@
 # raskladka/services.py
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from raskladka.models import MealPlan, Day, Meal, Product
+from raskladka.models import MealPlan, Day, Meal, Product, UserPlanSettings
 from raskladka.utils import (
     normalize_product_name_display,
     canonical_product_key,
@@ -384,10 +384,8 @@ class ProductService:
         if weight < 1:
             return False, "Вес продукта должен быть не меньше 1 грамма"
         if weight > 500_000:
-            return False,
-            (
-                "Вес продукта должен быть не больше 500 000 г "
-                "(500 кг)"
+            return False, (
+                "Вес продукта должен быть не больше 500 000 г (500 кг)"
             )
 
         # Серверная валидация названия по регулярному выражению
@@ -428,10 +426,8 @@ class ProductService:
         if weight < 1:
             return False, "Вес продукта должен быть не меньше 1 грамма"
         if weight > 500_000:
-            return False,
-            (
-                "Вес продукта должен быть не больше 500 000 г "
-                "(500 кг)"
+            return False, (
+                "Вес продукта должен быть не больше 500 000 г (500 кг)"
             )
 
         # Серверная валидация названия по регулярному выражению
@@ -810,4 +806,85 @@ class BackupService:
 
         except Exception as e:  # noqa: BLE001
             db.session.rollback()
-            return False, f"Ошибка импорта: {e}"
+            return False, (
+                "Ошибка импорта: " + str(e)
+            )
+
+
+class SettingsService:
+    """Сервис для сохранения пользовательских настроек расчета по плану."""
+
+    @staticmethod
+    def get_user_plan_settings(user_id: int, plan_id: int) -> dict:
+        """Возвращает сохраненные настройки trip_days и people_count.
+
+        Если настроек нет — возвращает пустой словарь.
+        """
+        settings = UserPlanSettings.query.filter_by(
+            user_id=user_id, plan_id=plan_id
+        ).first()
+        if not settings:
+            return {}
+        return {
+            "trip_days": settings.trip_days,
+            "people_count": settings.people_count,
+            "params_locked": bool(getattr(settings, "params_locked", False)),
+            "updated_at": (
+                settings.updated_at.isoformat()
+                if settings.updated_at
+                else None
+            ),
+        }
+
+    @staticmethod
+    def upsert_user_plan_settings(
+        user_id: int,
+        plan_id: int,
+        trip_days: Optional[int] = None,
+        people_count: Optional[int] = None,
+        params_locked: Optional[bool] = None,
+    ) -> None:
+        from raskladka import db
+
+        settings = UserPlanSettings.query.filter_by(
+            user_id=user_id, plan_id=plan_id
+        ).first()
+        if settings:
+            if trip_days is not None:
+                settings.trip_days = trip_days
+            if people_count is not None:
+                settings.people_count = people_count
+            if params_locked is not None and hasattr(
+                settings, "params_locked"
+            ):
+                settings.params_locked = bool(params_locked)
+        else:
+            # Если настроек нет, создаем с разумными значениями
+            # Берем дефолты, если параметры не переданы
+            default_trip_days = trip_days
+            default_people_count = people_count
+            if default_trip_days is None or default_people_count is None:
+                # Попробуем получить план и взять длину дней;
+                # people_count = 1 по умолчанию
+                plan = (
+                    MealPlan.query.filter_by(
+                        id=plan_id, user_id=user_id
+                    ).first()
+                )
+                if default_trip_days is None:
+                    default_trip_days = (
+                        len(plan.days) if plan and plan.days else 1
+                    )
+                if default_people_count is None:
+                    default_people_count = 1
+
+            settings = UserPlanSettings(
+                user_id=user_id,
+                plan_id=plan_id,
+                trip_days=int(default_trip_days),
+                people_count=int(default_people_count),
+                params_locked=(bool(params_locked)
+                               if params_locked is not None else False),
+            )
+            db.session.add(settings)
+        db.session.commit()

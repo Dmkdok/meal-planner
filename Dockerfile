@@ -43,6 +43,6 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD python -c "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3).status==200 else sys.exit(1)"
 
 # Run via gunicorn, tuned for prod (single-line exec form)
-CMD ["gunicorn", "-w", "4", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "-b", "0.0.0.0:5000", "raskladka.wsgi:application"]
+CMD ["gunicorn", "--preload", "-w", "4", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "-b", "0.0.0.0:5000", "raskladka.wsgi:application"]
 
 

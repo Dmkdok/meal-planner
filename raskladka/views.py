@@ -8,6 +8,7 @@ from flask import (
     url_for,
     flash,
     send_file,
+    current_app,
 )
 from flask_login import (
     login_user,
@@ -24,8 +25,13 @@ from raskladka.services import (
     MealService,
     ProductService,
     BackupService,
+    SettingsService,
 )
-from raskladka.utils import validate_positive_integer, canonical_username
+from raskladka.utils import (
+    validate_positive_integer,
+    canonical_username,
+    validate_username,
+)
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -198,40 +204,8 @@ ACTION_HANDLERS = {
 }
 
 
-def _validate_export_args():
-    """Парсит и валидирует параметры экспорта из query string.
-
-    Returns:
-        tuple[str, int, int, Response|None]:
-            (plan_id, trip_days, people_count, error_response)
-    """
-    plan_id = request.args.get("plan_id")
-    trip_days = request.args.get("trip_days")
-    people_count = request.args.get("people_count")
-
-    if not all([plan_id, trip_days, people_count]):
-        return None, None, None, _json_error(
-            "Необходимо указать plan_id, trip_days и people_count", 400
-        )
-
-    is_valid_trip_days, trip_days_error = validate_positive_integer(
-        trip_days, "Количество дней похода"
-    )
-    if not is_valid_trip_days:
-        return None, None, None, _json_error(trip_days_error, 400)
-
-    is_valid_people_count, people_count_error = validate_positive_integer(
-        people_count, "Количество человек"
-    )
-    if not is_valid_people_count:
-        return None, None, None, _json_error(people_count_error, 400)
-
-    return plan_id, int(trip_days), int(people_count), None
-
-
 def _prepare_headers(
     layout_days_count: int,
-    meal_types_by_day: list[list[str]],
     people_count: int,
 ) -> list[str]:
     headers = [
@@ -239,13 +213,7 @@ def _prepare_headers(
         f"1 прием пищи на {people_count} чел.",
     ]
     for i in range(layout_days_count):
-        day_meal_types = (
-            meal_types_by_day[i] if i < len(meal_types_by_day) else []
-        )
-        meal_type_text = (
-            ", ".join(day_meal_types) if day_meal_types else f"Рацион {i + 1}"
-        )
-        headers.append(f"Рацион {i + 1}\n{meal_type_text}")
+        headers.append(f"Повторы в рационе {i + 1}")
     headers.extend(["Количество повторений", "Общий вес для покупки"])
     return headers
 
@@ -317,7 +285,7 @@ def _build_workbook(
     )
 
     headers = _prepare_headers(
-        layout_days_count, meal_types_by_day, people_count
+        layout_days_count, people_count
     )
     ws.append(headers)
     for cell in ws[1]:
@@ -372,9 +340,16 @@ def register():
         confirm_password = request.form.get("confirm_password")
 
         username_norm = canonical_username(username_raw or "")
+        username_trimmed = (username_raw or "").strip()
 
         if not username_norm or not password or not confirm_password:
             flash("Все поля обязательны к заполнению", "error")
+            return redirect(url_for("views.register"))
+
+        # Валидация логина по whitelist
+        is_valid_username, username_error = validate_username(username_trimmed)
+        if not is_valid_username:
+            flash(username_error, "error")
             return redirect(url_for("views.register"))
 
         if password != confirm_password:
@@ -432,16 +407,15 @@ def index():
     if request.method == "POST":
         data = request.get_json() or {}
         action = data.get("action")
-        selected_plan_id = data.get("plan_id")
 
         try:
             handler = ACTION_HANDLERS.get(action)
             if not handler:
                 return _json_error("Неизвестное действие")
             return handler(data)
-        except Exception as e:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             db.session.rollback()
-            print(f"Ошибка при обработке запроса: {e}")
+            current_app.logger.exception("Ошибка при обработке запроса")
             return jsonify({
                 "status": "error",
                 "message": "Внутренняя ошибка сервера",
@@ -473,6 +447,78 @@ def index():
     )
 
 
+@views.route("/api/settings", methods=["GET", "POST"])
+@login_required
+def api_settings():  # noqa: C901
+    if request.method == "GET":
+        plan_id = request.args.get("plan_id")
+        try:
+            plan_id_int = int(plan_id)
+        except Exception:  # noqa: BLE001
+            return _json_error("Некорректный идентификатор раскладки", 400)
+
+        # доступ к плану
+        meal_plan = MealPlanService.get_plan_by_id(
+            plan_id_int, current_user.id
+        )
+        if not meal_plan:
+            return _json_error("Раскладка не найдена или доступ запрещён", 404)
+
+        data = SettingsService.get_user_plan_settings(
+            current_user.id, plan_id_int
+        )
+        return jsonify({"status": "success", "data": data})
+
+    # POST
+    data = request.get_json() or {}
+    plan_id = data.get("plan_id")
+    trip_days = data.get("trip_days")
+    people_count = data.get("people_count")
+    params_locked = data.get("params_locked")
+
+    try:
+        plan_id_int = int(plan_id)
+    except Exception:  # noqa: BLE001
+        return _json_error("Некорректный идентификатор раскладки", 400)
+
+    # Валидация: частичное обновление.
+    # Проверяем только переданные поля
+    if trip_days is not None:
+        is_valid_trip_days, trip_days_error = validate_positive_integer(
+            trip_days, "Количество дней похода"
+        )
+        if not is_valid_trip_days:
+            return _json_error(trip_days_error, 400)
+    if people_count is not None:
+        is_valid_people_count, people_count_error = (
+            validate_positive_integer(people_count, "Количество человек")
+        )
+        if not is_valid_people_count:
+            return _json_error(people_count_error, 400)
+    if params_locked is not None and not isinstance(params_locked, bool):
+        # Пытаемся привести из 0/1/"true"/"false"
+        if str(params_locked).lower() in ("1", "true", "yes", "on"):
+            params_locked = True
+        elif str(params_locked).lower() in ("0", "false", "no", "off"):
+            params_locked = False
+        else:
+            return _json_error("Некорректное значение params_locked", 400)
+
+    # доступ к плану
+    meal_plan = MealPlanService.get_plan_by_id(plan_id_int, current_user.id)
+    if not meal_plan:
+        return _json_error("Раскладка не найдена или доступ запрещён", 404)
+
+    SettingsService.upsert_user_plan_settings(
+        current_user.id,
+        plan_id_int,
+        int(trip_days) if trip_days is not None else None,
+        int(people_count) if people_count is not None else None,
+        params_locked=params_locked,
+    )
+    return jsonify({"status": "success"})
+
+
 @views.route("/calculate", methods=["POST"])
 @login_required
 def calculate_products():
@@ -494,7 +540,8 @@ def calculate_products():
                 {
                     "status": "error",
                     "message": (
-                        "Необходимо указать plan_id, trip_days и people_count"
+                        "Необходимо указать plan_id, trip_days и "
+                        "people_count"
                     ),
                 }
             ), 400
@@ -543,8 +590,8 @@ def calculate_products():
 
         return jsonify({"status": "success", "data": result})
 
-    except Exception as e:  # noqa: BLE001
-        print(f"Ошибка при расчете продуктов: {e}")
+    except Exception:  # noqa: BLE001
+        current_app.logger.exception("Ошибка при расчете продуктов")
         return jsonify(
             {"status": "error", "message": "Внутренняя ошибка сервера"}
         ), 500
@@ -612,9 +659,9 @@ def profile():
                 db.session.commit()
                 flash("Пароль успешно обновлен")
                 return redirect(url_for("views.profile"))
-            except Exception as e:  # noqa: BLE001
+            except Exception:  # noqa: BLE001
                 db.session.rollback()
-                print(f"Ошибка при смене пароля: {e}")
+                current_app.logger.exception("Ошибка при смене пароля")
                 flash("Не удалось обновить пароль. Попробуйте позже")
                 return redirect(url_for("views.profile"))
         else:
@@ -699,8 +746,8 @@ def export_excel():
             ),
         )
 
-    except Exception as e:  # noqa: BLE001
-        print(f"Ошибка при экспорте Excel: {e}")
+    except Exception:  # noqa: BLE001
+        current_app.logger.exception("Ошибка при экспорте Excel")
         return _json_error("Внутренняя ошибка сервера", 500)
 
 
@@ -730,8 +777,8 @@ def backup_export():
             download_name=filename,
             mimetype="application/json; charset=utf-8",
         )
-    except Exception as e:  # noqa: BLE001
-        print(f"Ошибка при экспорте JSON: {e}")
+    except Exception:  # noqa: BLE001
+        current_app.logger.exception("Ошибка при экспорте JSON")
         return _json_error("Не удалось создать резервную копию", 500)
 
 
@@ -768,7 +815,7 @@ def backup_import():
             flash(message)
             return redirect(url_for("views.profile"))
 
-    except Exception as e:  # noqa: BLE001
-        print(f"Ошибка при импорте JSON: {e}")
+    except Exception:  # noqa: BLE001
+        current_app.logger.exception("Ошибка при импорте JSON")
         flash("Не удалось импортировать резервную копию")
         return redirect(url_for("views.profile"))

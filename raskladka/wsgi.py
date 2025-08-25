@@ -26,6 +26,13 @@ if os.environ.get("INIT_DB", "false").lower() in (
     "true",
     "yes",
 ):  # noqa: PIE807
-    _upgrade_db()
+    try:
+        _upgrade_db()
+    except Exception:  # noqa: BLE001
+        # Avoid crashing Gunicorn workers on failed migration; log and continue
+        import traceback
+
+        print("[wsgi] Alembic upgrade failed during startup", flush=True)
+        traceback.print_exc()
 
 application = app

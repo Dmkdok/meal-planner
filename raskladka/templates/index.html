@@ -313,6 +313,83 @@
             font-size: 0.9em;
         }
 
+        /* Переключатель блокировки параметров */
+        .lock-toggle-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lock-toggle-label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .lock-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            border: 2px solid #e9ecef;
+            border-radius: 999px;
+            padding: 6px 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .lock-switch input {
+            display: none;
+        }
+
+        .lock-icon {
+            font-size: 16px;
+            line-height: 1;
+            color: #6c757d;
+        }
+
+        .lock-slider {
+            position: relative;
+            width: 46px;
+            height: 24px;
+            background: #f1f3f5;
+            border-radius: 999px;
+            box-shadow: inset 0 0 0 2px #dee2e6;
+            transition: background 0.2s ease;
+        }
+
+        .lock-slider::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            left: 2px;
+            top: 2px;
+            transition: transform 0.2s ease;
+        }
+
+        .lock-switch input:checked + .lock-slider {
+            background: #e8f5e9;
+            box-shadow: inset 0 0 0 2px rgba(40, 167, 69, 0.2);
+        }
+
+        .lock-switch input:checked + .lock-slider::after {
+            transform: translateX(22px);
+        }
+
+        /* Состояния блокировки для контролов рационов */
+        .ration-btn:disabled,
+        .ration-slider:disabled,
+        #trip-days:disabled,
+        #people-count:disabled,
+        #ration-reset-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         /* Горизонтальный блок деталей */
         .details-inline {
             display: flex;
@@ -623,6 +700,121 @@
             border-radius: 10px;
             padding: 20px;
             border: 2px solid #e9ecef;
+        }
+
+        /* Блок распределения повторений рационов */
+        .ration-preferences {
+            margin-top: 20px;
+            margin-bottom: 16px;
+            background: #ffffff;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            padding: 16px;
+        }
+
+        .ration-pref-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f1f3f5;
+        }
+
+        .ration-pref-title {
+            margin: 0;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .ration-pref-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .ration-reset-btn {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .ration-reset-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(73, 80, 87, 0.2);
+        }
+
+        .ration-total {
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .ration-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ration-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 280px) 36px 1fr 36px 90px;
+            align-items: center;
+            gap: 10px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .ration-name {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .ration-subname {
+            display: block;
+            font-weight: 500;
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+
+        .ration-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            background: #ffffff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #495057;
+            transition: all 0.2s ease;
+        }
+
+        .ration-btn:hover {
+            background: #f1f3f5;
+            transform: translateY(-1px);
+        }
+
+        .ration-slider {
+            width: 100%;
+            accent-color: #667eea;
+        }
+
+        .ration-value {
+            text-align: right;
+            font-weight: 600;
+            color: #495057;
+            white-space: nowrap;
         }
 
         .results-section h4 {
@@ -1406,7 +1598,7 @@
         }
     </style>
 </head>
-<body>
+<body data-plan-id="{{ selected_plan.id }}" data-layout-days="{{ selected_plan.days|length }}">
     <div class="app-wrapper">
         <!-- Header с навигацией -->
         <header class="app-header">
@@ -1452,8 +1644,8 @@
             <h3>Ваши раскладки</h3>
             <ul class="plan-list">
                 {% for plan in meal_plans %}
-                <li class="{% if plan.id == selected_plan.id %}selected-plan{% endif %}"
-                    onclick="selectPlan({{ plan.id }})">
+                <li class="{% if plan.id == selected_plan.id %}selected-plan{% endif %} plan-item"
+                    data-plan-id="{{ plan.id }}">
                     {{ plan.name }}
                     <div style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">
                         {{ plan.created_at.strftime('%Y-%m-%d') }}
@@ -1482,7 +1674,7 @@
                 </div>
 
                 <div class="header-actions">
-                    <button class="delete-plan-btn" onclick="deletePlan({{ selected_plan.id }})">
+                    <button class="delete-plan-btn" id="delete-plan-btn" data-plan-id="{{ selected_plan.id }}">
                         Удалить раскладку
                     </button>
                 </div>
@@ -1559,8 +1751,28 @@
                             </div>
                         </div>
                         <div class="controls-actions">
-                            <button class="calculate-btn" onclick="calculateFromLayout()">🧮 Рассчитать</button>
+                            <div class="lock-toggle-wrap">
+                                <div class="lock-toggle-label">Блокировка параметров</div>
+                                <label class="lock-switch" for="params-lock-toggle">
+                                    <span class="lock-icon" aria-hidden="true">🔓</span>
+                                    <input type="checkbox" id="params-lock-toggle">
+                                    <span class="lock-slider" aria-hidden="true"></span>
+                                    <span class="lock-icon" aria-hidden="true">🔒</span>
+                                </label>
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- Блок распределения повторений рационов (отображается после расчета) -->
+                    <div class="ration-preferences" id="ration-preferences" style="display: none;">
+                        <div class="ration-pref-header">
+                            <h4 class="ration-pref-title">Распределение повторений рационов</h4>
+                            <div class="ration-pref-actions">
+                                <div class="ration-total" id="ration-total"></div>
+                                <button class="ration-reset-btn" id="ration-reset-btn" type="button">Сброс</button>
+                            </div>
+                        </div>
+                        <div class="ration-rows" id="ration-rows"></div>
                     </div>
 
                     <details class="accordion" id="more-details">
@@ -1571,11 +1783,12 @@
                                     <div class="info-box">
                                         <h4>ℹ️ Как работает расчет:</h4>
                                         <ul>
-                                            <li>Берём продукты из вашей раскладки</li>
-                                            <li>Суммируем, сколько раз каждый продукт встречается за поход</li>
-                                            <li>Умножаем на количество человек</li>
-                                            <li>Формула: общий вес = вес на 1 приём × число повторений × количество человек</li>
+                                            <li>Вы задаёте длительность похода и количество человек.</li>
+                                            <li>Берём рацион-дни из вашей раскладки и считаем число повторов: округление вверх (дни похода / рационов в раскладке).</li>
+                                            <li>Для каждого продукта считаем: вес на 1 приём × число появлений в раскладке × количество повторов × количество человек.</li>
+                                            <li>Суммируем по всем продуктам — получаем общий вес закупки.</li>
                                         </ul>
+                                        <p style="margin: 6px 0 0 0; color: #3b5ea7;">Подсказка: вес на человека в день = общий вес / (количество человек × дни похода).</p>
                                     </div>
                                 </div>
                                 <div class="details-results">
@@ -1594,11 +1807,29 @@
     </div>
 
     <script>
+        const CTX = (() => {
+            const el = document.body;
+            return {
+                planId: parseInt(el.dataset.planId || '0'),
+                layoutDaysCount: parseInt(el.dataset.layoutDays || '0'),
+            };
+        })();
+        // Простая функция дебаунса
+        function debounce(fn, delay) {
+            var t;
+            return function() {
+                var ctx = this;
+                var args = arguments;
+                clearTimeout(t);
+                t = setTimeout(function() { fn.apply(ctx, args); }, delay);
+            };
+        }
+
         // Сохранение параметров расчета для раскладки
         function saveCalculationParams() {
             const tripDays = document.getElementById('trip-days').value;
             const peopleCount = document.getElementById('people-count').value;
-            const planId = {{ selected_plan.id }};
+            const planId = CTX.planId;
 
             localStorage.setItem(`calc_params_${planId}`, JSON.stringify({
                 tripDays: tripDays,
@@ -1606,9 +1837,63 @@
             }));
         }
 
+        // Сохранение параметров на сервере (для авторизованного пользователя)
+        async function saveSettingsToServer() {
+            try {
+                const planId = CTX.planId;
+                const tripDays = parseInt(document.getElementById('trip-days').value);
+                const peopleCount = parseInt(document.getElementById('people-count').value);
+                if (!tripDays || !peopleCount) return;
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan_id: planId, trip_days: tripDays, people_count: peopleCount })
+                });
+            } catch (e) {
+                // ignore network errors for background save
+            }
+        }
+
+        const saveSettingsToServerDebounced = debounce(saveSettingsToServer, 700);
+
+        async function saveLockToServer(locked) {
+            try {
+                const planId = CTX.planId;
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan_id: planId, params_locked: !!locked })
+                });
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        // Блокировка параметров (влияющих на расчет)
+        function setParamsLocked(isLocked) {
+            const tripDaysInput = document.getElementById('trip-days');
+            const peopleCountInput = document.getElementById('people-count');
+            if (tripDaysInput) tripDaysInput.disabled = isLocked;
+            if (peopleCountInput) peopleCountInput.disabled = isLocked;
+
+            // Элементы распределения рационов
+            const rationRows = document.querySelectorAll('.ration-row');
+            rationRows.forEach(function(row) {
+                const slider = row.querySelector('input[type="range"]');
+                const buttons = row.querySelectorAll('.ration-btn');
+                if (slider) slider.disabled = isLocked;
+                buttons.forEach(function(btn) { btn.disabled = isLocked; });
+            });
+
+            const resetBtn = document.getElementById('ration-reset-btn');
+            if (resetBtn) resetBtn.disabled = isLocked;
+        }
+
+        // lock state now comes from server via loadServerSettings
+
         // Восстановление параметров расчета для раскладки
         function loadCalculationParams() {
-            const planId = {{ selected_plan.id }};
+            const planId = CTX.planId;
             const savedParams = localStorage.getItem(`calc_params_${planId}`);
 
             if (savedParams) {
@@ -1617,8 +1902,32 @@
                 document.getElementById('people-count').value = params.peopleCount;
             } else {
                 // Устанавливаем значения по умолчанию
-                document.getElementById('trip-days').value = {{ selected_plan.days|length }};
+                document.getElementById('trip-days').value = CTX.layoutDaysCount || 1;
                 document.getElementById('people-count').value = 1;
+            }
+        }
+
+        // Загрузка сохраненных параметров с сервера (если есть)
+        async function loadServerSettings() {
+            try {
+                const planId = CTX.planId;
+                const resp = await fetch(`/api/settings?plan_id=${planId}`);
+                const data = await resp.json();
+                if (data && data.status === 'success' && data.data) {
+                    if (data.data.trip_days) {
+                        document.getElementById('trip-days').value = data.data.trip_days;
+                    }
+                    if (data.data.people_count) {
+                        document.getElementById('people-count').value = data.data.people_count;
+                    }
+                    const lockToggle = document.getElementById('params-lock-toggle');
+                    if (lockToggle && typeof data.data.params_locked === 'boolean') {
+                        lockToggle.checked = !!data.data.params_locked;
+                        setParamsLocked(lockToggle.checked);
+                    }
+                }
+            } catch (e) {
+                // ignore
             }
         }
 
@@ -1646,8 +1955,17 @@
 
             // Сохраняем активную вкладку
             try {
-                const planId = {{ selected_plan.id }};
+                const planId = CTX.planId;
                 localStorage.setItem(`active_tab_${planId}`, tabName);
+            } catch (e) {
+                // ignore
+            }
+
+            // Если открыли вкладку калькулятора — выполним расчет автоматически
+            try {
+                if (tabName === 'calculator') {
+                    calculateFromLayoutDebounced();
+                }
             } catch (e) {
                 // ignore
             }
@@ -1668,7 +1986,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        plan_id: {{ selected_plan.id }},
+                        plan_id: CTX.planId,
                         trip_days: tripDays,
                         people_count: peopleCount
                     })
@@ -1690,7 +2008,7 @@
                     );
                     saveCalculationParams();
                     try {
-                        const planId = {{ selected_plan.id }};
+                        const planId = CTX.planId;
                         localStorage.setItem(`calc_last_run_${planId}`, '1');
                     } catch (e) {
                         // ignore
@@ -1704,12 +2022,17 @@
             }
         }
 
+        const calculateFromLayoutDebounced = debounce(calculateFromLayout, 600);
+
         // Отображение результатов расчета на основе раскладки
         function displayLayoutResults(results, tripDays, peopleCount, layoutDaysCount, layoutRepetitions, actualDaysUsed, mealTypesByDay, productMealUsage) {
             const mainResultsSection = document.getElementById('main-results-section');
             const mainResultsContent = document.getElementById('main-results-content');
             const resultsSection = document.getElementById('results-section');
             const resultsContent = document.getElementById('results-content');
+            const rationPrefs = document.getElementById('ration-preferences');
+            const rationRowsEl = document.getElementById('ration-rows');
+            const rationTotalEl = document.getElementById('ration-total');
 
             console.log('Типы приемов пищи по дням:', mealTypesByDay);
 
@@ -1723,11 +2046,9 @@
                                 <th>1 прием пищи на ${peopleCount} чел.</th>
             `;
 
-            // Добавляем заголовки для каждого рациона раскладки
+            // Добавляем заголовки для каждого рациона раскладки ("Повторы в рационе N")
             for (let i = 0; i < layoutDaysCount; i++) {
-                const dayMealTypes = mealTypesByDay[i] || [];
-                const mealType = dayMealTypes.length > 0 ? dayMealTypes.join(', ') : `Рацион ${i + 1}`;
-                mainHtml += `<th>Рацион ${i + 1}<br><small>${mealType}</small></th>`;
+                mainHtml += `<th>Повторы в рационе ${i + 1}</th>`;
             }
 
             mainHtml += `
@@ -1738,7 +2059,8 @@
                         <tbody>
             `;
 
-                        results.forEach(result => {
+            let productRowIndex = 0;
+            results.forEach(result => {
                 // Вес за один прием пищи × количество человек
                 const weightPerMealForPeople = (result.weight_per_meal || 0) * peopleCount;
                 const weightPerMealText = weightPerMealForPeople >= 1000 ?
@@ -1749,7 +2071,7 @@
                 const mealUsage = productMealUsage[result.name] || {};
 
                 mainHtml += `
-                    <tr>
+                    <tr data-product-index="${productRowIndex}" data-weight-per-meal-for-people="${weightPerMealForPeople}">
                         <td class="product-name-cell">${result.name}</td>
                         <td class="weight-per-person-cell">${weightPerMealText}</td>
                 `;
@@ -1758,14 +2080,13 @@
                 let totalOccurrences = 0;
                 for (let i = 0; i < layoutDaysCount; i++) {
                     const usageCount = mealUsage[i] || 0;
-                    // Рассчитываем общее количество повторений за весь поход
-                    // Рацион i будет использоваться в дни: i, i+layoutDaysCount, i+2*layoutDaysCount, ...
-                    const repetitionsForThisRation = Math.floor((tripDays - i - 1) / layoutDaysCount) + 1;
+                    // Повторы по умолчанию для рациона i
+                    const repetitionsForThisRation = Math.max(0, Math.floor((tripDays - i - 1) / layoutDaysCount) + 1);
                     const totalUsageForThisRation = usageCount * repetitionsForThisRation;
                     totalOccurrences += totalUsageForThisRation;
 
                     const cellClass = totalUsageForThisRation > 0 ? 'meal-usage-cell' : 'meal-usage-empty-cell';
-                    mainHtml += `<td class="${cellClass}">${totalUsageForThisRation > 0 ? totalUsageForThisRation : ''}</td>`;
+                    mainHtml += `<td class="${cellClass}" data-product-index="${productRowIndex}" data-ration-index="${i}" data-base-usage="${usageCount}">${totalUsageForThisRation > 0 ? totalUsageForThisRation : ''}</td>`;
                 }
 
                 // Рассчитываем общий вес: количество повторений × вес за один прием пищи на всех человек
@@ -1775,10 +2096,11 @@
                     `${Math.round(totalWeight)} г`;
 
                 mainHtml += `
-                        <td class="occurrences-cell">${totalOccurrences}</td>
-                        <td class="weight-cell">${weightText}</td>
+                        <td class="occurrences-cell" data-product-index="${productRowIndex}">${totalOccurrences}</td>
+                        <td class="weight-cell" data-product-index="${productRowIndex}">${weightText}</td>
                     </tr>
                 `;
+                productRowIndex += 1;
             });
 
             mainHtml += `
@@ -1802,22 +2124,41 @@
                 <div class="stats-block" style="margin-top: 20px; padding: 15px; padding-right: 120px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #28a745;">
                     <h5 style=\"margin: 0 0 4px 0; color: #1e7e34;\">📊 Общая статистика</h5>
                     <p style=\"margin: 0 0 5px 0; color: #1e7e34;\"><strong>Всего продуктов:</strong> ${results.length}</p>
-                    <p style=\"margin: 5px 0 0 0; color: #1e7e34;\"><strong>Общий вес для покупки:</strong> ${totalWeightText}</p>
+                    <p style=\"margin: 5px 0 0 0; color: #1e7e34;\"><strong>Общий вес для покупки:</strong> <span id="stats-total-weight">${totalWeightText}</span></p>
                     <button class="export-excel-btn stats-export-btn" onclick="exportToExcel()" id="export-excel-btn" data-plan-id="{{ selected_plan.id }}">
                         📊 Экспорт в Excel
                     </button>
                 </div>
             `;
 
+            // Дополнительные агрегаты по весу для панели деталей
+            const totalWeightPerPerson = peopleCount > 0 ? (totalWeight / peopleCount) : 0;
+            const totalWeightPerPersonText = totalWeightPerPerson >= 1000 ?
+                `${(totalWeightPerPerson / 1000).toFixed(1)} кг` :
+                `${Math.round(totalWeightPerPerson)} г`;
+
+            const weightPerPersonPerDay = (peopleCount > 0 && tripDays > 0) ? (totalWeight / (peopleCount * tripDays)) : 0;
+            const weightPerPersonPerDayText = weightPerPersonPerDay >= 1000 ?
+                `${(weightPerPersonPerDay / 1000).toFixed(1)} кг/день` :
+                `${Math.round(weightPerPersonPerDay)} г/день`;
+
+            const totalWeightPerDay = tripDays > 0 ? (totalWeight / tripDays) : 0;
+            const totalWeightPerDayText = totalWeightPerDay >= 1000 ?
+                `${(totalWeightPerDay / 1000).toFixed(1)} кг/день` :
+                `${Math.round(totalWeightPerDay)} г/день`;
+
             // Детали расчета для боковой панели
             let detailsHtml = `
                 <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
                     <h5 style="margin: 0 0 10px 0; color: #1976d2;">📊 Информация о расчете</h5>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Общий вес закупки:</strong> ${totalWeightText}</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Вес на одного (всего):</strong> ${totalWeightPerPersonText}</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Вес на человека в день:</strong> ${weightPerPersonPerDayText}</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Вес в день (на всех):</strong> ${totalWeightPerDayText}</p>
                     <p style="margin: 5px 0; color: #1976d2;"><strong>Длительность похода:</strong> ${tripDays} дней</p>
                     <p style="margin: 5px 0; color: #1976d2;"><strong>Количество человек:</strong> ${peopleCount}</p>
                     <p style="margin: 5px 0; color: #1976d2;"><strong>Рационов в раскладке:</strong> ${layoutDaysCount}</p>
-                    <p style="margin: 5px 0; color: #1976d2;"><strong>Повторений раскладки:</strong> ${layoutRepetitions}</p>
-                    <p style="margin: 5px 0; color: #1976d2;"><strong>Используется дней:</strong> ${actualDaysUsed}</p>
+                    <p style="margin: 5px 0; color: #1976d2;"><strong>Количество повторов раскладки:</strong> ${layoutRepetitions}</p>
                 </div>
             `;
 
@@ -1840,25 +2181,311 @@
                 exportExcelBtn.dataset.peopleCount = peopleCount;
             }
 
-            // Прокручиваем только если активна вкладка калькулятора
+            // Автопрокрутка отключена: больше не скроллим к началу таблицы результатов
+
+            // Построение блока распределения повторений
             try {
-                const isCalculatorActive = document.getElementById('calculator-tab')?.classList.contains('active');
-                if (isCalculatorActive) {
-                    const header = document.querySelector('.app-header');
-                    const headerHeight = header ? header.offsetHeight : 0;
-                    const targetY = mainResultsSection.getBoundingClientRect().top + window.pageYOffset - headerHeight - 10;
-                    window.scrollTo({ top: targetY, behavior: 'smooth' });
+                if (rationPrefs && rationRowsEl && rationTotalEl) {
+                    buildRationPreferences({ tripDays, layoutDaysCount, mealTypesByDay });
+                    rationPrefs.style.display = 'block';
                 }
             } catch (e) {
-                // ignore
+                console.error('Ошибка при построении блока рационов:', e);
             }
+
+            // Применяем состояние блокировки к только что созданным элементам
+            try {
+                const lockToggle = document.getElementById('params-lock-toggle');
+                if (lockToggle && lockToggle.checked) {
+                    setParamsLocked(true);
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // Глобальное состояние распределения рационов внутри скоупа страницы
+        let RATION_STATE = {
+            counts: [],
+            initial: [],
+            locked: new Set(),
+            tripDays: 0,
+            layoutDaysCount: 0
+        };
+
+        function computeDefaultCounts(tripDays, layoutDaysCount) {
+            const arr = [];
+            for (let i = 0; i < layoutDaysCount; i++) {
+                const c = Math.max(0, Math.floor((tripDays - i - 1) / layoutDaysCount) + 1);
+                arr.push(c);
+            }
+            return arr;
+        }
+
+        // --- Persistence for ration sliders (localStorage) ---
+        function _rationCountsKey() {
+            const planId = CTX.planId;
+            return `ration_counts_${planId}`;
+        }
+
+        function saveRationCounts() {
+            try {
+                const payload = {
+                    counts: Array.isArray(RATION_STATE.counts) ? RATION_STATE.counts : [],
+                    layoutDaysCount: RATION_STATE.layoutDaysCount,
+                    tripDays: RATION_STATE.tripDays,
+                };
+                localStorage.setItem(_rationCountsKey(), JSON.stringify(payload));
+            } catch (e) { /* ignore */ }
+        }
+
+        const saveRationCountsDebounced = debounce(saveRationCounts, 200);
+
+        function loadRationCounts(tripDays, layoutDaysCount) {
+            try {
+                const raw = localStorage.getItem(_rationCountsKey());
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                if (!data || !Array.isArray(data.counts)) return null;
+                if ((data.layoutDaysCount | 0) !== layoutDaysCount) return null;
+                const counts = data.counts
+                    .slice(0, layoutDaysCount)
+                    .map(v => {
+                        const n = parseInt(v);
+                        return isNaN(n) ? 0 : Math.max(0, Math.min(tripDays, n));
+                    });
+                while (counts.length < layoutDaysCount) counts.push(0);
+                const sum = counts.reduce((a, b) => a + b, 0);
+                if (sum !== tripDays) return null;
+                return counts;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function renderRationTotal() {
+            const rationTotalEl = document.getElementById('ration-total');
+            if (!rationTotalEl) return;
+            const sum = RATION_STATE.counts.reduce((a, b) => a + b, 0);
+            rationTotalEl.textContent = `Сумма: ${sum} / ${RATION_STATE.tripDays}`;
+        }
+
+        function updateResultsTableByRationCounts() {
+            try {
+                const productRows = document.querySelectorAll('table.results-table tbody tr');
+                productRows.forEach(row => {
+                    const productIndex = parseInt(row.getAttribute('data-product-index'));
+                    const weightPerMealForPeople = parseFloat(row.getAttribute('data-weight-per-meal-for-people')) || 0;
+                    let occurrencesSum = 0;
+                    for (let i = 0; i < RATION_STATE.layoutDaysCount; i++) {
+                        const cell = row.querySelector(`td[data-product-index="${productIndex}"][data-ration-index="${i}"]`);
+                        if (!cell) continue;
+                        const baseUsage = parseInt(cell.getAttribute('data-base-usage')) || 0;
+                        const repetitions = RATION_STATE.counts[i] || 0;
+                        const totalUsage = baseUsage * repetitions;
+                        occurrencesSum += totalUsage;
+                        cell.textContent = totalUsage > 0 ? totalUsage : '';
+                        cell.className = totalUsage > 0 ? 'meal-usage-cell' : 'meal-usage-empty-cell';
+                    }
+                    const occCell = row.querySelector(`td.occurrences-cell[data-product-index="${productIndex}"]`);
+                    if (occCell) occCell.textContent = occurrencesSum;
+                    const totalWeight = occurrencesSum * weightPerMealForPeople;
+                    const weightText = totalWeight >= 1000 ? `${(totalWeight / 1000).toFixed(1)} кг` : `${Math.round(totalWeight)} г`;
+                    const weightCell = row.querySelector(`td.weight-cell[data-product-index="${productIndex}"]`);
+                    if (weightCell) weightCell.textContent = weightText;
+                });
+
+                // Обновляем блок "Общая статистика" — суммарный вес
+                let grandTotal = 0;
+                const weightCells = document.querySelectorAll('table.results-table tbody tr td.weight-cell');
+                weightCells.forEach(cell => {
+                    const row = cell.closest('tr');
+                    if (!row) return;
+                    const productIndex = parseInt(row.getAttribute('data-product-index'));
+                    const weightPerMealForPeople = parseFloat(row.getAttribute('data-weight-per-meal-for-people')) || 0;
+                    const occCell = row.querySelector(`td.occurrences-cell[data-product-index="${productIndex}"]`);
+                    const occ = occCell ? parseInt(occCell.textContent || '0') || 0 : 0;
+                    grandTotal += occ * weightPerMealForPeople;
+                });
+                const statsTotalWeight = document.getElementById('stats-total-weight');
+                if (statsTotalWeight) {
+                    const text = grandTotal >= 1000 ? `${(grandTotal / 1000).toFixed(1)} кг` : `${Math.round(grandTotal)} г`;
+                    statsTotalWeight.textContent = text;
+                }
+            } catch (e) {
+                console.error('Ошибка обновления таблицы по слайдерам рационов:', e);
+            }
+        }
+
+        function redistributeDelta(changedIndex, amount, mode) {
+            // mode: 'decrease' — уменьшить другие на amount
+            //       'increase' — увеличить другие на amount (до их капа)
+            let remaining = amount;
+
+            const pass = (includeLocked) => {
+                for (let i = 0; i < RATION_STATE.layoutDaysCount && remaining > 0; i++) {
+                    if (i === changedIndex) continue;
+                    if (!includeLocked && RATION_STATE.locked.has(i)) continue;
+                    if (mode === 'decrease') {
+                        const canDec = Math.min(RATION_STATE.counts[i], remaining);
+                        if (canDec > 0) {
+                            RATION_STATE.counts[i] -= canDec;
+                            remaining -= canDec;
+                        }
+                    } else {
+                        const room = Math.max(0, RATION_STATE.tripDays - RATION_STATE.counts[i]);
+                        if (room <= 0) continue;
+                        const inc = Math.min(room, remaining);
+                        RATION_STATE.counts[i] += inc;
+                        remaining -= inc;
+                    }
+                }
+            };
+
+            // Сначала по незаблокированным
+            pass(false);
+            // Затем по всем (кроме текущего)
+            if (remaining > 0) pass(true);
+
+            return amount - remaining; // фактически перераспределено
+        }
+
+        function onRationChange(index, newValue) {
+            const oldValue = RATION_STATE.counts[index];
+            if (newValue === oldValue) return;
+            RATION_STATE.locked.add(index);
+            const delta = newValue - oldValue;
+            if (delta > 0) {
+                const redistributed = redistributeDelta(index, delta, 'decrease');
+                RATION_STATE.counts[index] = oldValue + redistributed;
+            } else if (delta < 0) {
+                const redistributed = redistributeDelta(index, -delta, 'increase');
+                RATION_STATE.counts[index] = oldValue - redistributed;
+            }
+
+            // Обновляем UI для всех строк с учётом перераспределения
+            const allRows = document.querySelectorAll('.ration-row');
+            allRows.forEach(r => {
+                const idx = parseInt(r.getAttribute('data-ration-index'));
+                const sld = r.querySelector('input[type="range"]');
+                const lbl = r.querySelector('.ration-value');
+                const val = RATION_STATE.counts[idx];
+                if (sld) {
+                    sld.max = String(RATION_STATE.tripDays);
+                    sld.value = String(val);
+                }
+                if (lbl) lbl.textContent = `${val} из ${RATION_STATE.tripDays}`;
+            });
+
+            renderRationTotal();
+            updateResultsTableByRationCounts();
+            saveRationCountsDebounced();
+        }
+
+        function buildRationPreferences({ tripDays, layoutDaysCount, mealTypesByDay }) {
+            const rationPrefs = document.getElementById('ration-preferences');
+            const rowsEl = document.getElementById('ration-rows');
+            const resetBtn = document.getElementById('ration-reset-btn');
+            if (!rationPrefs || !rowsEl || !resetBtn) return;
+
+            RATION_STATE.tripDays = tripDays;
+            RATION_STATE.layoutDaysCount = layoutDaysCount;
+            RATION_STATE.initial = computeDefaultCounts(tripDays, layoutDaysCount);
+            const savedCounts = loadRationCounts(tripDays, layoutDaysCount);
+            RATION_STATE.counts = savedCounts ? [...savedCounts] : [...RATION_STATE.initial];
+            RATION_STATE.locked = new Set();
+
+            // Рендерим строки
+            rowsEl.innerHTML = '';
+            for (let i = 0; i < layoutDaysCount; i++) {
+                const dayMealTypes = mealTypesByDay[i] || [];
+                const mealTypeText = dayMealTypes.length > 0 ? dayMealTypes.join(', ') : '';
+                const row = document.createElement('div');
+                row.className = 'ration-row';
+                row.setAttribute('data-ration-index', String(i));
+
+                const nameCol = document.createElement('div');
+                nameCol.className = 'ration-name';
+                nameCol.innerHTML = 'Рацион ' + (i + 1) + (mealTypeText ? ('<span class="ration-subname"><small>' + mealTypeText + '</small></span>') : '');
+
+                const decBtn = document.createElement('button');
+                decBtn.className = 'ration-btn';
+                decBtn.type = 'button';
+                decBtn.setAttribute('aria-label', 'Уменьшить');
+                decBtn.textContent = '−';
+
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.className = 'ration-slider';
+                slider.min = '0';
+                slider.max = String(RATION_STATE.tripDays);
+                slider.step = '1';
+                slider.value = String(RATION_STATE.counts[i]);
+
+                const incBtn = document.createElement('button');
+                incBtn.className = 'ration-btn';
+                incBtn.type = 'button';
+                incBtn.setAttribute('aria-label', 'Увеличить');
+                incBtn.textContent = '+';
+
+                const valueCol = document.createElement('div');
+                valueCol.className = 'ration-value';
+                valueCol.textContent = `${RATION_STATE.counts[i]} из ${RATION_STATE.tripDays}`;
+
+                // Слушатели
+                decBtn.addEventListener('click', () => {
+                    const nextVal = Math.max(0, RATION_STATE.counts[i] - 1);
+                    onRationChange(i, nextVal);
+                });
+                incBtn.addEventListener('click', () => {
+                    const cap = RATION_STATE.tripDays;
+                    const nextVal = Math.min(cap, RATION_STATE.counts[i] + 1);
+                    onRationChange(i, nextVal);
+                });
+                slider.addEventListener('input', (e) => {
+                    const v = parseInt(e.target.value);
+                    // Плавно, но с соблюдением суммы
+                    onRationChange(i, isNaN(v) ? RATION_STATE.counts[i] : v);
+                });
+
+                row.appendChild(nameCol);
+                row.appendChild(decBtn);
+                row.appendChild(slider);
+                row.appendChild(incBtn);
+                row.appendChild(valueCol);
+                rowsEl.appendChild(row);
+            }
+
+            resetBtn.onclick = () => {
+                RATION_STATE.counts = [...RATION_STATE.initial];
+                RATION_STATE.locked = new Set();
+                // Обновляем UI
+                const rows = document.querySelectorAll('.ration-row');
+                rows.forEach(row => {
+                    const idx = parseInt(row.getAttribute('data-ration-index'));
+                    const slider = row.querySelector('input[type="range"]');
+                    const valueLabel = row.querySelector('.ration-value');
+                    const val = RATION_STATE.counts[idx];
+                    if (slider) {
+                        slider.max = String(RATION_STATE.tripDays);
+                        slider.value = String(val);
+                    }
+                    if (valueLabel) valueLabel.textContent = `${val} из ${RATION_STATE.tripDays}`;
+                });
+                renderRationTotal();
+                updateResultsTableByRationCounts();
+                saveRationCountsDebounced();
+            };
+
+            renderRationTotal();
+            updateResultsTableByRationCounts();
+            // Persist current state so it survives reloads even without manual changes
+            saveRationCountsDebounced();
         }
 
         async function exportToExcel() {
             const btn = document.getElementById('export-excel-btn');
             const tripDays = btn && btn.dataset ? btn.dataset.tripDays : document.getElementById('trip-days').value;
             const peopleCount = btn && btn.dataset ? btn.dataset.peopleCount : document.getElementById('people-count').value;
-            const planId = btn && btn.dataset ? btn.dataset.planId : (window.PLanId || '');
+            const planId = (btn && btn.dataset && btn.dataset.planId) ? btn.dataset.planId : CTX.planId;
 
             try {
                 const url = `/export_excel?plan_id=${encodeURIComponent(planId)}&trip_days=${encodeURIComponent(tripDays)}&people_count=${encodeURIComponent(peopleCount)}`;
@@ -1960,7 +2587,7 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 action: 'update_plan_name',
-                                plan_id: {{ selected_plan.id }}, // eslint-disable-line
+                                plan_id: CTX.planId,
                                 new_name: newName
                             })
                         });
@@ -2056,7 +2683,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'add_day',
-                        plan_id: {{ selected_plan.id }},
+                        plan_id: CTX.planId,
                         day_number: newDayNumber
                     })
                 });
@@ -2092,53 +2719,38 @@
             }
             // Загружаем сохраненные параметры расчета
             loadCalculationParams();
+            // Пробуем загрузить параметры с сервера и обновить поля
+            loadServerSettings().then(function() {
+                // Настройки загружены; расчет инициируется логикой восстановления вкладки ниже
+            });
 
             // Добавляем обработчики для сохранения параметров при изменении
             const tripDaysInput = document.getElementById('trip-days');
             const peopleCountInput = document.getElementById('people-count');
 
             if (tripDaysInput) {
-                tripDaysInput.addEventListener('change', saveCalculationParams);
-                tripDaysInput.addEventListener('input', saveCalculationParams);
+                tripDaysInput.addEventListener('input', () => { saveCalculationParams(); saveSettingsToServerDebounced(); calculateFromLayoutDebounced(); });
             }
 
             if (peopleCountInput) {
-                peopleCountInput.addEventListener('change', saveCalculationParams);
-                peopleCountInput.addEventListener('input', saveCalculationParams);
+                peopleCountInput.addEventListener('input', () => { saveCalculationParams(); saveSettingsToServerDebounced(); calculateFromLayoutDebounced(); });
+            }
+
+            // Инициализация переключателя блокировки параметров
+            const lockToggle = document.getElementById('params-lock-toggle');
+            if (lockToggle) {
+                lockToggle.addEventListener('change', function() {
+                    setParamsLocked(this.checked);
+                    saveLockToServer(this.checked);
+                });
             }
 
             // Восстановление активной вкладки
             try {
-                const planId = {{ selected_plan.id }};
-                const savedTab = localStorage.getItem(`active_tab_${planId}`);
-                if (savedTab === 'calculator' || savedTab === 'layout') {
-                    switchTab(savedTab);
-                }
-            } catch (e) {
-                // ignore
-            }
-
-            // Если сохранена активная вкладка калькулятора — восстановим результаты,
-            // запустив расчет на основе сохраненных параметров
-            try {
-                const planId = {{ selected_plan.id }};
-                const savedTab = localStorage.getItem(`active_tab_${planId}`);
-                if (savedTab === 'calculator') {
-                    // Пытаемся восстановить таблицу, выполнив расчет с сохраненными параметрами
-                    // (они уже проставлены вызовом loadCalculationParams выше)
-                    calculateFromLayout();
-                }
-            } catch (e) {
-                // ignore
-            }
-
-            // Если пользователь был на вкладке "Раскладка", но ранее запускал расчет,
-            // автоматически восстановим таблицу (чтобы она не сбрасывалась после F5)
-            try {
-                const planId = {{ selected_plan.id }};
-                const lastRun = localStorage.getItem(`calc_last_run_${planId}`);
-                if (lastRun === '1') {
-                    calculateFromLayout();
+                const planId = CTX.planId;
+                const savedTab1 = localStorage.getItem(`active_tab_${planId}`);
+                if (savedTab1 === 'calculator' || savedTab1 === 'layout') {
+                    switchTab(savedTab1);
                 }
             } catch (e) {
                 // ignore

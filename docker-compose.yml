@@ -29,7 +29,7 @@ services:
       - DATABASE_URI=postgresql+psycopg://rask_user:${POSTGRES_PASSWORD:-change-me}@db:5432/raskladka
       - INIT_DB=${INIT_DB:-false}
       - FLASK_ENV=production
-    command: ["gunicorn", "-w", "4", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "-b", "0.0.0.0:5000", "raskladka.wsgi:application"]
+    command: ["gunicorn", "--preload", "-w", "4", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "-b", "0.0.0.0:5000", "raskladka.wsgi:application"]
     volumes:
       - instance_data:/app/instance
     healthcheck:

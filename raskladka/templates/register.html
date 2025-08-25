@@ -13,7 +13,18 @@
     <div class="container">
         <h1>Регистрация</h1>
         <form method="post">
-            <input type="text" name="username" placeholder="Имя пользователя" required>
+            <input type="text"
+                   name="username"
+                   placeholder="Имя пользователя"
+                   required
+                   autocomplete="username"
+                   autocapitalize="off"
+                   spellcheck="false"
+                   minlength="3"
+                   maxlength="30"
+                   pattern="^[A-Za-z0-9._-]{3,30}$"
+                   title="Только латинские буквы, цифры и символы . _ - (3–30)"
+            >
             <div class="input-with-icon">
                 <input type="password" id="password" name="password" placeholder="Пароль" required autocomplete="new-password" class="password-input">
                 <button type="button" class="toggle-visibility" aria-label="Показать пароль" title="Показать пароль" aria-pressed="false">

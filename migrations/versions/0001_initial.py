@@ -59,8 +59,22 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["meal_id"], ["meal.id"], ondelete=None),
     )
 
+    op.create_table(
+        "user_plan_settings",
+        sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("plan_id", sa.Integer(), nullable=False),
+        sa.Column("trip_days", sa.Integer(), nullable=False),
+        sa.Column("people_count", sa.Integer(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete=None),
+        sa.ForeignKeyConstraint(["plan_id"], ["meal_plan.id"], ondelete=None),
+        sa.UniqueConstraint("user_id", "plan_id", name="uq_user_plan_settings"),
+    )
+
 
 def downgrade() -> None:
+    op.drop_table("user_plan_settings")
     op.drop_table("product")
     op.drop_table("meal")
     op.drop_table("day")

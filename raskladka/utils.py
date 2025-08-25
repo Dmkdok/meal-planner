@@ -63,7 +63,34 @@ def canonical_username(username: str) -> str:
     """
     if not isinstance(username, str):
         return str(username)
-    return username.strip().lower()
+    return username.strip().casefold()
+
+
+# Разрешенные символы логина: только латинские буквы, цифры и . _ -
+_USERNAME_REGEX = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def validate_username(username: str) -> tuple[bool, str]:
+    """
+    Валидирует имя пользователя (логин):
+    - только латинские буквы (A-Z, a-z), цифры (0-9)
+    - разрешенные символы: точка (.), подчеркивание (_), дефис (-)
+    - длина от 3 до 30 символов
+    """
+    if not isinstance(username, str):
+        return False, "Некорректное имя пользователя"
+    trimmed = username.strip()
+    if not trimmed:
+        return False, "Введите имя пользователя"
+    if len(trimmed) < 3 or len(trimmed) > 30:
+        return False, "Имя пользователя должно быть от 3 до 30 символов"
+    if not _USERNAME_REGEX.match(trimmed):
+        return (
+            False,
+            "Имя пользователя может содержать только латинские буквы, цифры и"
+            " символы . _ -",
+        )
+    return True, ""
 
 
 # Разрешаем все буквы и цифры (Unicode), пробелы и основные символы

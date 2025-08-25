@@ -55,3 +55,29 @@ class Product(db.Model):
     meal_id = db.Column(db.Integer, db.ForeignKey("meal.id"), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     weight = db.Column(db.Integer, nullable=False)
+
+
+class UserPlanSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    plan_id = db.Column(
+        db.Integer,
+        db.ForeignKey("meal_plan.id"),
+        nullable=False,
+    )
+    trip_days = db.Column(db.Integer, nullable=False)
+    people_count = db.Column(db.Integer, nullable=False)
+    params_locked = db.Column(db.Boolean, nullable=False, default=False)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id",
+            "plan_id",
+            name="uq_user_plan_settings",
+        ),
+    )
