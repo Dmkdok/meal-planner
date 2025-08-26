@@ -374,6 +374,27 @@
             transform: translateY(-2px);
         }
 
+        .create-meal-section {
+            margin: 10px 15px 0 15px;
+            padding-top: 12px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .new-meal-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 1.05em;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .new-meal-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
         .success-message {
             background: #28a745;
             color: white;
@@ -556,7 +577,7 @@
         <div class="meal-section" data-meal-id="{{ meal.id }}">
             <div class="meal-header">
                 <div class="meal-title" onclick="editMealName(this, {{ meal.id }})" data-original-name="{{ meal.meal_type }}">
-                    {{ meal.meal_type }}
+                    {{ meal.meal_type|display_title }}
                 </div>
                 <button class="delete-meal-btn" onclick="deleteMeal({{ meal.id }})">Удалить прием пищи</button>
             </div>
@@ -604,6 +625,9 @@
         </div>
         {% endfor %}
 
+        <div class="create-meal-section">
+            <input type="text" id="new-meal-name" class="new-meal-input" placeholder="Название нового приема пищи (1-30 символов)" maxlength="30">
+        </div>
         <button class="add-meal-btn" onclick="addMeal({{ day.day_number }})">+ Добавить прием пищи</button>
     </div>
 
@@ -758,6 +782,22 @@
 
             const saveChanges = async () => {
                 const newName = input.value.trim();
+                if (!newName) {
+                    showMessage('Введите название приема пищи', 'error');
+                    element.style.display = 'inline';
+                    input.remove();
+                    return;
+                }
+                if (newName.length > 30) {
+                    showMessage('Название приема пищи не должно превышать 30 символов', 'error');
+                    return;
+                }
+                // Валидация допустимых символов (та же логика, что и на сервере)
+                const mealRe = /^[\w\s\-\.,()\/+%&:;'"№_А-Яа-яЁё]+$/;
+                if (!mealRe.test(newName)) {
+                    showMessage('Название приема пищи содержит недопустимые символы', 'error');
+                    return;
+                }
                 if (newName && newName !== originalName) {
                     try {
                         const response = await fetch('/', {
@@ -771,7 +811,7 @@
                         });
                         const data = await response.json();
                         if (data.status === 'success') {
-                            element.textContent = newName;
+                            element.textContent = newName.charAt(0).toUpperCase() + newName.slice(1).toLowerCase();
                             element.dataset.originalName = newName;
                             showMessage('Название приема пищи обновлено');
                         } else {
@@ -1033,30 +1073,46 @@
 
         // Добавление приема пищи
         async function addMeal(dayNumber) {
-            const mealType = prompt('Введите тип приема пищи (например, Завтрак):');
-            if (mealType) {
-                try {
-                    const response = await fetch('/', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'add_meal',
-                            plan_id: {{ meal_plan.id }},
-                            day_number: dayNumber,
-                            meal_type: mealType
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.status === 'success') {
-                        showMessage('Прием пищи добавлен');
-                        location.reload();
-                    } else {
-                        showMessage('Не удалось добавить прием пищи', 'error');
-                    }
-                } catch (error) {
-                    console.error('Ошибка при добавлении приема пищи:', error);
-                    showMessage('Произошла ошибка при добавлении приема пищи', 'error');
+            const input = document.getElementById('new-meal-name');
+            const mt = (input && input.value ? input.value : '').trim();
+            if (!mt) {
+                showMessage('Введите название приема пищи', 'error');
+                if (input) input.focus();
+                return;
+            }
+            if (mt.length > 30) {
+                showMessage('Название приема пищи не должно превышать 30 символов', 'error');
+                if (input) input.focus();
+                return;
+            }
+            const mealRe = /^[\w\s\-\.,()\/+%&:;'"№_А-Яа-яЁё]+$/;
+            if (!mealRe.test(mt)) {
+                showMessage('Название приема пищи содержит недопустимые символы', 'error');
+                if (input) input.focus();
+                return;
+            }
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_meal',
+                        plan_id: {{ meal_plan.id }},
+                        day_number: dayNumber,
+                        meal_type: mt
+                    })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showMessage('Прием пищи добавлен');
+                    if (input) input.value = '';
+                    location.reload();
+                } else {
+                    showMessage('Не удалось добавить прием пищи', 'error');
                 }
+            } catch (error) {
+                console.error('Ошибка при добавлении приема пищи:', error);
+                showMessage('Произошла ошибка при добавлении приема пищи', 'error');
             }
         }
 
@@ -1208,6 +1264,17 @@
                     hideFieldError(`edit-name-error-${productId}`);
                 });
             });
+
+            // Обработка Enter для ввода нового приема пищи
+            const newMealInput = document.getElementById('new-meal-name');
+            if (newMealInput) {
+                newMealInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const addMealBtn = document.querySelector('.add-meal-btn');
+                        if (addMealBtn) addMealBtn.click();
+                    }
+                });
+            }
         });
     </script>
 </body>

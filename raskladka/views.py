@@ -31,6 +31,7 @@ from raskladka.utils import (
     validate_positive_integer,
     canonical_username,
     validate_username,
+    validate_meal_type,
 )
 from io import BytesIO
 from openpyxl import Workbook
@@ -130,11 +131,15 @@ def _handle_add_meal(data):
         day_number = int(data.get("day_number"))
     except Exception:  # noqa: BLE001
         return _json_error("Некорректные параметры приема пищи")
+    meal_type = data.get("meal_type", "")
+    ok, err = validate_meal_type(meal_type)
+    if not ok:
+        return _json_error(err)
     success = MealService.add_meal(
         plan_id,
         current_user.id,
         day_number,
-        data.get("meal_type"),
+        meal_type,
     )
     if success:
         return jsonify({"status": "success"})
@@ -174,6 +179,10 @@ def _handle_update_meal_name(data):
         meal_id = int(data.get("meal_id"))
     except Exception:  # noqa: BLE001
         return _json_error("Некорректный идентификатор приема пищи")
+    meal_name = data.get("meal_name", "")
+    ok, err = validate_meal_type(meal_name)
+    if not ok:
+        return _json_error(err)
     success = MealService.update_meal_type(
         meal_id, current_user.id, data.get("meal_name")
     )

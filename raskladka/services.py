@@ -59,7 +59,9 @@ class CalculationService:
             day_meal_types: list[str] = []
             for meal in day.meals:
                 if meal.products:
-                    day_meal_types.append(meal.meal_type)
+                    day_meal_types.append(
+                        normalize_product_name_display(meal.meal_type)
+                    )
 
                 for product in meal.products:
                     key = canonical_product_key(product.name)
@@ -279,7 +281,10 @@ class MealService:
                 day_number=day_number,
             ).first()
             if day:
-                new_meal = Meal(day=day, meal_type=meal_type)
+                new_meal = Meal(
+                    day=day,
+                    meal_type=normalize_product_name_display(meal_type),
+                )
                 db.session.add(new_meal)
                 db.session.commit()
                 return True
@@ -319,7 +324,7 @@ class MealService:
         )
 
         if meal:
-            meal.meal_type = meal_type
+            meal.meal_type = normalize_product_name_display(meal_type)
             db.session.commit()
             return True
         return False
@@ -685,7 +690,8 @@ class BackupService:
             meals_data = []
 
         for meal_data in meals_data:
-            meal_type = str(meal_data.get("meal_type", "Прием пищи"))[:50]
+            meal_type = str(meal_data.get("meal_type", "Прием пищи"))[:30]
+            meal_type = normalize_product_name_display(meal_type)
             meal = Meal(day=day, meal_type=meal_type)
             db.session.add(meal)
             BackupService._import_products(meal, meal_data.get("products", []))

@@ -1695,7 +1695,7 @@
                     {% for meal in day.meals %}
                     <div class="meal" data-meal-id="{{ meal.id }}">
                         <div class="meal-header">
-                            <div class="meal-title">{{ meal.meal_type }}</div>
+                            <div class="meal-title">{{ meal.meal_type|display_title }}</div>
                         </div>
 
                         <div class="product-list">
@@ -2754,6 +2754,28 @@
                 }
             } catch (e) {
                 // ignore
+            }
+
+            // Обработчики кликов для переключения раскладок
+            const planItems = document.querySelectorAll('.plan-item');
+            planItems.forEach(function(item) {
+                item.addEventListener('click', function() {
+                    const id = this.getAttribute('data-plan-id') || (this.dataset && this.dataset.planId);
+                    if (id) {
+                        selectPlan(id);
+                    }
+                });
+            });
+
+            // Обработчик удаления раскладки
+            const deleteBtn = document.getElementById('delete-plan-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-plan-id') || (this.dataset && this.dataset.planId);
+                    if (id) {
+                        deletePlan(id);
+                    }
+                });
             }
         });
     </script>

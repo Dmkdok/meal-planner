@@ -115,3 +115,26 @@ def validate_product_name(name: str) -> tuple[bool, str]:
     if not _PRODUCT_NAME_REGEX.match(trimmed):
         return False, "Название продукта содержит недопустимые символы"
     return True, ""
+
+
+# Разрешаем любые буквы/цифры Unicode, пробелы и основные символы для meal_type
+_MEAL_TYPE_REGEX = re.compile(r"^[\w\s\-\.,()/+%&:;'\"№_]+$", re.UNICODE)
+
+
+def validate_meal_type(name: str) -> tuple[bool, str]:
+    """
+    Валидирует название приема пищи:
+    - длина 1..30 символов
+    - допускаются буквы/цифры (Unicode), пробелы и основные символы
+      - _ . , ( ) / + % & : ; ' " №
+    """
+    if not isinstance(name, str):
+        return False, "Некорректное название приема пищи"
+    trimmed = name.strip()
+    if not trimmed:
+        return False, "Введите название приема пищи"
+    if len(trimmed) > 30:
+        return False, "Название приема пищи не должно превышать 30 символов"
+    if not _MEAL_TYPE_REGEX.match(trimmed):
+        return False, "Название приема пищи содержит недопустимые символы"
+    return True, ""

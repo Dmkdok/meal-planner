@@ -44,8 +44,20 @@ login_manager.login_view = "views.login"
 
 from raskladka.models import User
 from raskladka.views import views
+from raskladka.utils import normalize_product_name_display
 
 app.register_blueprint(views)
+
+
+# Register Jinja filter to format display titles (capitalize first word only)
+@app.template_filter("display_title")
+def jinja_display_title(value):  # noqa: D401, ANN001
+    """Normalize display name for titles."""
+    try:
+        return normalize_product_name_display(value)
+    except Exception:
+        return value
+
 
 # Trust proxy headers (for correct scheme/host when behind reverse proxy)
 app.wsgi_app = ProxyFix(
